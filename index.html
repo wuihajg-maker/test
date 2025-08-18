@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Selamat Ulang TahunN!</title>
+    <title>Selamat Ulang Tahun!</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Caveat:wght@700&display=swap" rel="stylesheet">
@@ -12,6 +13,7 @@
         body {
             font-family: 'Inter', sans-serif;
             touch-action: none;
+            overflow: hidden; /* Mencegah scroll */
         }
         .font-caveat {
             font-family: 'Caveat', cursive;
@@ -28,31 +30,36 @@
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        .text-shadow {
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
     </style>
 </head>
-<body class="bg-pink-100 flex items-center justify-center min-h-screen overflow-hidden">
+<body class="bg-gradient-to-br from-rose-100 to-pink-200 flex items-center justify-center min-h-screen">
+    
+    <canvas id="backgroundCanvas" class="absolute top-0 left-0 w-full h-full z-0"></canvas>
 
-    <div id="container" class="w-full max-w-lg mx-auto text-center p-4">
+    <div id="container" class="relative z-10 w-full max-w-lg mx-auto text-center p-4 bg-white/50 backdrop-blur-sm rounded-2xl shadow-lg">
         
         <div id="startScreen">
-            <h1 class="text-3xl sm:text-4xl md:text-5xl text-pink-500 font-caveat mb-4">Sebuah Kejutan Untukmu...</h1>
-            <p class="text-gray-600 mb-6">Situs ini perlu izin mikrofon untuk meniup lilin. Izinkan ya!</p>
-            <button id="startButton" class="bg-pink-500 text-white font-bold py-3 px-6 rounded-full hover:bg-pink-600 transition-transform transform hover:scale-105">
+            <h1 class="text-3xl sm:text-4xl md:text-5xl text-pink-600 font-caveat mb-4 text-shadow">Sebuah Kejutan Untukmu...</h1>
+            <p class="text-gray-700 mb-6">Situs ini perlu izin mikrofon untuk meniup lilin. Izinkan ya!</p>
+            <button id="startButton" class="bg-pink-500 text-white font-bold py-3 px-6 rounded-full hover:bg-pink-600 transition-transform transform hover:scale-105 shadow-md">
                 Mulai!
             </button>
         </div>
 
         <div id="birthdayScreen" class="hidden">
-            <h1 id="title" class="text-3xl sm:text-4xl md:text-5xl text-pink-500 font-caveat mb-4 transition-opacity duration-500">Selamat Ulang Tahun, Ulan!</h1>
+            <h1 id="title" class="text-3xl sm:text-4xl md:text-5xl text-pink-600 font-caveat mb-4 transition-opacity duration-500 text-shadow">Selamat Ulang Tahun, Ulan!</h1>
             <canvas id="birthdayCanvas"></canvas>
-            <p id="instruction" class="mt-4 text-gray-600 text-lg transition-opacity duration-500">
-                Tiup 3 kali untuk memadamkan lilinnya!
+            <p id="instruction" class="mt-4 text-gray-700 text-lg transition-opacity duration-500">
+                Tiup 3 kali untuk memadamkan semua lilin!
             </p>
         </div>
 
         <div id="finalMessage" class="hidden">
-            <h2 class="text-4xl sm:text-5xl md:text-6xl text-pink-600 font-caveat reveal-message">Semoga semua keinginanmu terkabul!</h2>
-            <p class="text-gray-700 mt-4 text-xl reveal-message" style="animation-delay: 0.5s;">Happy Birthday, Sahabat Terbaikku!</p>
+            <h2 class="text-4xl sm:text-5xl md:text-6xl text-pink-700 font-caveat reveal-message text-shadow">Semoga semua keinginanmu terkabul!</h2>
+            <p class="text-gray-800 mt-4 text-xl reveal-message" style="animation-delay: 0.5s;">Happy Birthday, Sahabat Terbaikku!</p>
         </div>
         
         <audio id="birthdayAudio" class="hidden"></audio>
@@ -70,6 +77,8 @@
         const instruction = document.getElementById('instruction');
         const finalMessage = document.getElementById('finalMessage');
         const birthdayAudio = document.getElementById('birthdayAudio');
+        const backgroundCanvas = document.getElementById('backgroundCanvas');
+        const bgCtx = backgroundCanvas.getContext('2d');
 
         // --- Variabel Audio ---
         let audioContext;
@@ -78,18 +87,23 @@
         let canBlow = true; // Flag untuk mendeteksi tiupan baru
         let micReady = false;
         let micLevel = 0;
-        const BLOW_THRESHOLD = 35; // Menurunkan threshold agar lebih sensitif
+        const BLOW_THRESHOLD = 30;
 
         // --- Variabel Canvas ---
         let particles = [];
+        let confetti = [];
+        let stars = [];
         const candles = [
-            { x: 0.40, y: 0.32, isLit: true, flameSize: 15 },
-            { x: 0.50, y: 0.33, isLit: true, flameSize: 15 },
-            { x: 0.60, y: 0.32, isLit: true, flameSize: 15 },
+            { x: 0.30, y: 0.38, isLit: true, flameSize: 15 },
+            { x: 0.38, y: 0.35, isLit: true, flameSize: 15 },
+            { x: 0.46, y: 0.34, isLit: true, flameSize: 15 },
+            { x: 0.54, y: 0.34, isLit: true, flameSize: 15 },
+            { x: 0.62, y: 0.35, isLit: true, flameSize: 15 },
+            { x: 0.70, y: 0.38, isLit: true, flameSize: 15 },
         ];
         let messagePlayed = false;
 
-        // --- Fungsi Inisialisasi Audio ---
+        // --- Inisialisasi Audio ---
         async function initAudio() {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -102,8 +116,34 @@
                 instruction.textContent = "Tiup 3 kali! Perhatikan bar di bawah.";
             } catch (err) {
                 console.error("Izin mikrofon ditolak:", err);
-                instruction.textContent = "Mikrofon tidak aktif. Tekan & tahan untuk meniup lilin.";
+                instruction.textContent = "Mikrofon tidak aktif. Klik 3 kali untuk meniup.";
             }
+        }
+
+        // --- Musik Ulang Tahun dengan Tone.js ---
+        function playBirthdaySong() {
+            const synth = new Tone.Synth().toDestination();
+            const melody = [
+                { note: 'G4', duration: '8n', time: '0:0' }, { note: 'G4', duration: '8n', time: '0:0:2' },
+                { note: 'A4', duration: '4n', time: '0:1' }, { note: 'G4', duration: '4n', time: '0:2' },
+                { note: 'C5', duration: '4n', time: '0:3' }, { note: 'B4', duration: '2n', time: '1:0' },
+                { note: 'G4', duration: '8n', time: '2:0' }, { note: 'G4', duration: '8n', time: '2:0:2' },
+                { note: 'A4', duration: '4n', time: '2:1' }, { note: 'G4', duration: '4n', time: '2:2' },
+                { note: 'D5', duration: '4n', time: '2:3' }, { note: 'C5', duration: '2n', time: '3:0' },
+                { note: 'G4', duration: '8n', time: '4:0' }, { note: 'G4', duration: '8n', time: '4:0:2' },
+                { note: 'G5', duration: '4n', time: '4:1' }, { note: 'E5', duration: '4n', time: '4:2' },
+                { note: 'C5', duration: '4n', time: '4:3' }, { note: 'B4', duration: '4n', time: '5:0' },
+                { note: 'A4', duration: '2n', time: '5:1' },
+                { note: 'F5', duration: '8n', time: '6:0' }, { note: 'F5', duration: '8n', time: '6:0:2' },
+                { note: 'E5', duration: '4n', time: '6:1' }, { note: 'C5', duration: '4n', time: '6:2' },
+                { note: 'D5', duration: '4n', time: '6:3' }, { note: 'C5', duration: '2n', time: '7:0' }
+            ];
+            const part = new Tone.Part((time, value) => {
+                synth.triggerAttackRelease(value.note, value.duration, time);
+            }, melody).start(0);
+            part.loop = true;
+            part.loopEnd = '8m';
+            Tone.Transport.start();
         }
 
         // --- Fungsi Menggambar ---
@@ -111,24 +151,28 @@
             const size = Math.min(container.clientWidth, 500);
             canvas.width = size;
             canvas.height = size * 0.8;
+            backgroundCanvas.width = window.innerWidth;
+            backgroundCanvas.height = window.innerHeight;
+            stars = [];
+            for (let i = 0; i < 100; i++) {
+                stars.push({
+                    x: Math.random() * backgroundCanvas.width,
+                    y: Math.random() * backgroundCanvas.height,
+                    radius: Math.random() * 1.5,
+                    alpha: Math.random()
+                });
+            }
             draw();
         }
         
         function drawMicIndicator(width, height) {
             if (!micReady) return;
-            
-            const barWidth = width * 0.5;
-            const barHeight = 10;
-            const x = (width - barWidth) / 2;
-            const y = height - 20;
-
+            const barWidth = width * 0.5, barHeight = 10, x = (width - barWidth) / 2, y = height - 20;
             ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
             ctx.fillRect(x, y, barWidth, barHeight);
-
             const levelWidth = (micLevel / 100) * barWidth;
             ctx.fillStyle = '#34D399';
             ctx.fillRect(x, y, levelWidth, barHeight);
-            
             const thresholdX = x + (BLOW_THRESHOLD / 100) * barWidth;
             ctx.fillStyle = '#EF4444';
             ctx.fillRect(thresholdX, y, 2, barHeight);
@@ -150,71 +194,87 @@
         function drawFriends(width, height) {
             ctx.fillStyle = '#D1D5DB';
             ctx.beginPath();
-            ctx.arc(width * 0.18, height * 0.7, width * 0.08, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.arc(width * 0.18, height * 0.7, width * 0.08, 0, Math.PI * 2); ctx.fill();
             ctx.beginPath();
-            ctx.moveTo(width * 0.12, height * 0.65);
-            ctx.lineTo(width * 0.16, height * 0.6);
-            ctx.lineTo(width * 0.18, height * 0.65);
-            ctx.fill();
+            ctx.moveTo(width * 0.12, height * 0.65); ctx.lineTo(width * 0.16, height * 0.6); ctx.lineTo(width * 0.18, height * 0.65); ctx.fill();
             ctx.beginPath();
-            ctx.moveTo(width * 0.2, height * 0.65);
-            ctx.lineTo(width * 0.22, height * 0.6);
-            ctx.lineTo(width * 0.24, height * 0.65);
-            ctx.fill();
+            ctx.moveTo(width * 0.2, height * 0.65); ctx.lineTo(width * 0.22, height * 0.6); ctx.lineTo(width * 0.24, height * 0.65); ctx.fill();
             ctx.fillStyle = '#A16207';
             ctx.beginPath();
-            ctx.arc(width * 0.82, height * 0.7, width * 0.08, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.arc(width * 0.82, height * 0.7, width * 0.08, 0, Math.PI * 2); ctx.fill();
             ctx.fillStyle = '#FBBF24';
             ctx.beginPath();
-            ctx.arc(width * 0.78, height * 0.63, width * 0.03, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.arc(width * 0.78, height * 0.63, width * 0.03, 0, Math.PI * 2); ctx.fill();
             ctx.beginPath();
-            ctx.arc(width * 0.86, height * 0.63, width * 0.03, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.arc(width * 0.86, height * 0.63, width * 0.03, 0, Math.PI * 2); ctx.fill();
         }
 
         function drawCandles(width, height) {
             candles.forEach(candle => {
-                const candleX = width * candle.x;
-                const candleY = height * candle.y;
-                const candleWidth = width * 0.02;
-                const candleHeight = height * 0.15;
+                const candleX = width * candle.x, candleY = height * candle.y;
+                const candleWidth = width * 0.02, candleHeight = height * 0.15;
                 ctx.fillStyle = '#A7F3D0';
                 ctx.fillRect(candleX, candleY, candleWidth, candleHeight);
                 if (candle.isLit) {
-                    ctx.beginPath();
-                    ctx.fillStyle = 'orange';
-                    const flameX = candleX + candleWidth / 2;
-                    const flameY = candleY;
-                    ctx.ellipse(flameX, flameY, candle.flameSize * 0.2, candle.flameSize * 0.5, 0, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.beginPath();
-                    ctx.fillStyle = 'yellow';
-                    ctx.ellipse(flameX, flameY + 2, candle.flameSize * 0.15, candle.flameSize * 0.3, 0, 0, Math.PI * 2);
-                    ctx.fill();
+                    const flameX = candleX + candleWidth / 2, flameY = candleY;
+                    ctx.beginPath(); ctx.fillStyle = 'orange';
+                    ctx.ellipse(flameX, flameY, candle.flameSize * 0.2, candle.flameSize * 0.5, 0, 0, Math.PI * 2); ctx.fill();
+                    ctx.beginPath(); ctx.fillStyle = 'yellow';
+                    ctx.ellipse(flameX, flameY + 2, candle.flameSize * 0.15, candle.flameSize * 0.3, 0, 0, Math.PI * 2); ctx.fill();
                 }
             });
         }
 
-        function createParticle(x, y) {
-            particles.push({ x, y, size: Math.random() * 3 + 1, speedX: Math.random() * 2 - 1, speedY: -Math.random() * 2 - 1, life: Math.random() * 30 + 30 });
-        }
-
+        function createParticle(x, y) { particles.push({ x, y, size: Math.random() * 3 + 1, speedX: Math.random() * 2 - 1, speedY: -Math.random() * 2 - 1, life: Math.random() * 30 + 30 }); }
         function drawParticles() {
             particles.forEach((p, index) => {
-                p.x += p.speedX;
-                p.y += p.speedY;
-                p.life--;
-                if (p.life <= 0) {
-                    particles.splice(index, 1);
-                } else {
-                    ctx.beginPath();
-                    ctx.fillStyle = `rgba(107, 114, 128, ${p.life / 60})`;
-                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-                    ctx.fill();
+                p.x += p.speedX; p.y += p.speedY; p.life--;
+                if (p.life <= 0) { particles.splice(index, 1); } 
+                else {
+                    ctx.beginPath(); ctx.fillStyle = `rgba(107, 114, 128, ${p.life / 60})`;
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
                 }
+            });
+        }
+
+        function createConfetti() {
+            const colors = ['#f43f5e', '#ec4899', '#d946ef', '#a855f7', '#8b5cf6', '#6366f1'];
+            for (let i = 0; i < 150; i++) {
+                confetti.push({
+                    x: canvas.width / 2, y: canvas.height / 2,
+                    size: Math.random() * 5 + 2,
+                    speedX: Math.random() * 10 - 5, speedY: Math.random() * -15 - 5,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    rotation: Math.random() * 360,
+                    gravity: 0.2
+                });
+            }
+        }
+        function drawConfetti() {
+            confetti.forEach((c, index) => {
+                c.x += c.speedX; c.y += c.speedY; c.speedY += c.gravity;
+                if (c.y > canvas.height) { confetti.splice(index, 1); }
+                else {
+                    ctx.save();
+                    ctx.translate(c.x, c.y);
+                    ctx.rotate(c.rotation * Math.PI / 180);
+                    ctx.fillStyle = c.color;
+                    ctx.fillRect(-c.size / 2, -c.size / 2, c.size, c.size);
+                    ctx.restore();
+                }
+            });
+        }
+
+        function drawBackground() {
+            bgCtx.clearRect(0, 0, backgroundCanvas.width, backgroundCanvas.height);
+            stars.forEach(star => {
+                star.alpha += (Math.random() - 0.5) * 0.1;
+                if (star.alpha < 0) star.alpha = 0;
+                if (star.alpha > 1) star.alpha = 1;
+                bgCtx.beginPath();
+                bgCtx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                bgCtx.fillStyle = `rgba(255, 255, 255, ${star.alpha})`;
+                bgCtx.fill();
             });
         }
 
@@ -224,6 +284,7 @@
             drawFriends(canvas.width, canvas.height);
             drawCandles(canvas.width, canvas.height);
             drawParticles();
+            drawConfetti();
             drawMicIndicator(canvas.width, canvas.height);
         }
 
@@ -237,32 +298,41 @@
             dataArray.forEach(value => sum += value);
             micLevel = sum / bufferLength;
 
-            // Logika baru untuk tiupan
+            // Logika baru untuk 3 tiupan
             if (micLevel > BLOW_THRESHOLD && canBlow) {
                 canBlow = false; // Mencegah tiupan panjang dihitung berkali-kali
-                
-                // Cari lilin yang masih menyala dan padamkan
-                const litCandle = candles.find(c => c.isLit);
-                if (litCandle) {
-                    litCandle.isLit = false;
-                    // Efek asap saat lilin padam
-                    for(let i = 0; i < 20; i++) {
-                        createParticle(canvas.width * litCandle.x + (canvas.width * 0.01), canvas.height * litCandle.y);
-                    }
-                }
+                extinguishCandles(2); // Padamkan 2 lilin setiap tiupan
             } else if (micLevel < BLOW_THRESHOLD) {
                 canBlow = true; // Izinkan tiupan berikutnya setelah suara reda
             }
         }
+        
+        function extinguishCandles(count) {
+             let extinguishedCount = 0;
+             for (let i = 0; i < candles.length; i++) {
+                 if (candles[i].isLit) {
+                     candles[i].isLit = false;
+                     // Efek asap
+                     for(let j = 0; j < 20; j++) {
+                         createParticle(canvas.width * candles[i].x + (canvas.width * 0.01), canvas.height * candles[i].y);
+                     }
+                     extinguishedCount++;
+                     if (extinguishedCount >= count) {
+                         break;
+                     }
+                 }
+             }
+        }
 
         function animate() {
-            if (micReady) {
-                checkMicLevel();
-            }
+            drawBackground();
+
+            if (micReady) { checkMicLevel(); }
 
             const allOut = candles.every(c => !c.isLit);
             if (allOut && !messagePlayed) {
                 messagePlayed = true;
+                createConfetti();
                 showFinalMessage();
             }
 
@@ -279,79 +349,29 @@
         }
 
         function showFinalMessage() {
-            document.getElementById('instruction').style.opacity = '0';
-            document.getElementById('title').style.opacity = '0';
+            instruction.style.opacity = '0';
+            title.style.opacity = '0';
             setTimeout(() => {
-                document.getElementById('instruction').classList.add('hidden');
-                document.getElementById('title').classList.add('hidden');
+                instruction.classList.add('hidden');
+                title.classList.add('hidden');
                 finalMessage.classList.remove('hidden');
                 playBirthdayMessage();
             }, 500);
         }
 
         // --- Fungsi Text-to-Speech (TTS) ---
-        function base64ToArrayBuffer(base64) {
-            const binaryString = window.atob(base64);
-            const len = binaryString.length;
-            const bytes = new Uint8Array(len);
-            for (let i = 0; i < len; i++) {
-                bytes[i] = binaryString.charCodeAt(i);
-            }
-            return bytes.buffer;
-        }
-
-        function pcmToWav(pcmData, sampleRate) {
-            const header = new ArrayBuffer(44);
-            const view = new DataView(header);
-            const pcm16 = new Int16Array(pcmData);
-
-            writeString(view, 0, 'RIFF');
-            view.setUint32(4, 36 + pcm16.length * 2, true);
-            writeString(view, 8, 'WAVE');
-            writeString(view, 12, 'fmt ');
-            view.setUint32(16, 16, true);
-            view.setUint16(20, 1, true);
-            view.setUint16(22, 1, true);
-            view.setUint32(24, sampleRate, true);
-            view.setUint32(28, sampleRate * 2, true);
-            view.setUint16(32, 2, true);
-            view.setUint16(34, 16, true);
-            writeString(view, 36, 'data');
-            view.setUint32(40, pcm16.length * 2, true);
-
-            function writeString(view, offset, string) {
-                for (let i = 0; i < string.length; i++) {
-                    view.setUint8(offset + i, string.charCodeAt(i));
-                }
-            }
-            
-            return new Blob([header, pcm16], { type: 'audio/wav' });
-        }
-
+        function base64ToArrayBuffer(base64) { const binaryString = window.atob(base64); const len = binaryString.length; const bytes = new Uint8Array(len); for (let i = 0; i < len; i++) { bytes[i] = binaryString.charCodeAt(i); } return bytes.buffer; }
+        function pcmToWav(pcmData, sampleRate) { const header = new ArrayBuffer(44); const view = new DataView(header); const pcm16 = new Int16Array(pcmData); writeString(view, 0, 'RIFF'); view.setUint32(4, 36 + pcm16.length * 2, true); writeString(view, 8, 'WAVE'); writeString(view, 12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true); view.setUint32(24, sampleRate, true); view.setUint32(28, sampleRate * 2, true); view.setUint16(32, 2, true); view.setUint16(34, 16, true); writeString(view, 36, 'data'); view.setUint32(40, pcm16.length * 2, true); function writeString(view, offset, string) { for (let i = 0; i < string.length; i++) { view.setUint8(offset + i, string.charCodeAt(i)); } } return new Blob([header, pcm16], { type: 'audio/wav' }); }
         async function playBirthdayMessage() {
             const textPrompt = "Ucapkan dengan ceria: Selamat ulang tahun Ulan! Semoga semua keinginanmu terkabul!";
-            const payload = {
-                contents: [{ parts: [{ text: textPrompt }] }],
-                generationConfig: {
-                    responseModalities: ["AUDIO"],
-                    speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } } }
-                },
-                model: "gemini-2.5-flash-preview-tts"
-            };
-            const apiKey = "";
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
-
+            const payload = { contents: [{ parts: [{ text: textPrompt }] }], generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } } } }, model: "gemini-2.5-flash-preview-tts" };
+            const apiKey = ""; const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
             try {
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
+                const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
                 const result = await response.json();
                 const part = result?.candidates?.[0]?.content?.parts?.[0];
                 const audioData = part?.inlineData?.data;
                 const mimeType = part?.inlineData?.mimeType;
-
                 if (audioData && mimeType && mimeType.startsWith("audio/")) {
                     const sampleRateMatch = mimeType.match(/rate=(\d+)/);
                     if (sampleRateMatch) {
@@ -363,47 +383,31 @@
                         birthdayAudio.play();
                     }
                 }
-            } catch (error) {
-                console.error("Gagal memutar pesan ulang tahun:", error);
-            }
+            } catch (error) { console.error("Gagal memutar pesan ulang tahun:", error); }
         }
 
         // --- Event Listeners ---
         startButton.addEventListener('click', async () => {
+            await Tone.start();
+            console.log('Audio context started');
             startScreen.classList.add('hidden');
             birthdayScreen.classList.remove('hidden');
             await initAudio();
+            playBirthdaySong();
             resizeCanvas();
             animate();
         });
 
-        // Fallback jika mikrofon tidak aktif
-        let isFallbackBlowing = false;
-        function startBlowingFallback() {
-            if (!micReady && !isFallbackBlowing) {
-                isFallbackBlowing = true;
-                const litCandle = candles.find(c => c.isLit);
-                if (litCandle) {
-                    litCandle.isLit = false;
-                    for(let i = 0; i < 20; i++) {
-                        createParticle(canvas.width * litCandle.x + (canvas.width * 0.01), canvas.height * litCandle.y);
-                    }
-                }
+        // Fallback jika mikrofon tidak aktif (klik 3x)
+        function blowFallback() {
+            if (!micReady) {
+                extinguishCandles(2);
             }
         }
-        function stopBlowingFallback() {
-             if (!micReady) {
-                isFallbackBlowing = false;
-            }
-        }
-
-        canvas.addEventListener('mousedown', startBlowingFallback);
-        canvas.addEventListener('mouseup', stopBlowingFallback);
-        canvas.addEventListener('touchstart', startBlowingFallback, { passive: true });
-        canvas.addEventListener('touchend', stopBlowingFallback);
+        canvas.addEventListener('mousedown', blowFallback);
+        canvas.addEventListener('touchstart', blowFallback, { passive: true });
 
         window.addEventListener('resize', resizeCanvas);
     </script>
 </body>
 </html>
-
