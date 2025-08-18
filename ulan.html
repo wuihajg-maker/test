@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Selamat Ulang Tahun!</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Caveat:wght@700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            touch-action: none;
+        }
+        .font-caveat {
+            font-family: 'Caveat', cursive;
+        }
+        canvas {
+            cursor: pointer;
+            display: block;
+        }
+        .reveal-message {
+            animation: fadeIn 2s ease-in-out forwards;
+            opacity: 0;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-pink-100 flex items-center justify-center min-h-screen overflow-hidden">
+
+    <div id="container" class="w-full max-w-lg mx-auto text-center p-4">
+        
+        <div id="startScreen">
+            <h1 class="text-3xl sm:text-4xl md:text-5xl text-pink-500 font-caveat mb-4">Sebuah Kejutan Untukmu...</h1>
+            <p class="text-gray-600 mb-6">Siapkan suaramu untuk meniup lilin!</p>
+            <button id="startButton" class="bg-pink-500 text-white font-bold py-3 px-6 rounded-full hover:bg-pink-600 transition-transform transform hover:scale-105">
+                Mulai!
+            </button>
+        </div>
+
+        <div id="birthdayScreen" class="hidden">
+            <h1 id="title" class="text-3xl sm:text-4xl md:text-5xl text-pink-500 font-caveat mb-4 transition-opacity duration-500">Selamat Ulang Tahun, Ulan!</h1>
+            <canvas id="birthdayCanvas"></canvas>
+            <p id="instruction" class="mt-4 text-gray-600 text-lg transition-opacity duration-500">
+                Tiup ke mikrofon untuk memadamkan lilin!
+            </p>
+        </div>
+
+        <div id="finalMessage" class="hidden">
+            <h2 class="text-4xl sm:text-5xl md:text-6xl text-pink-600 font-caveat reveal-message">Semoga semua keinginanmu terkabul!</h2>
+            <p class="text-gray-700 mt-4 text-xl reveal-message" style="animation-delay: 0.5s;">Happy Birthday, Sahabat Terbaikku!</p>
+        </div>
+        
+        <audio id="birthdayAudio" class="hidden"></audio>
+
+    </div>
+
+    <script>
+        // --- Elemen DOM ---
+        const container = document.getElementById('container');
+        const startScreen = document.getElementById('startScreen');
+        const birthdayScreen = document.getElementById('birthdayScreen');
+        const startButton = document.getElementById('startButton');
+        const canvas = document.getElementById('birthdayCanvas');
+        const ctx = canvas.getContext('2d');
+        const instruction = document.getElementById('instruction');
+        const finalMessage = document.getElementById('finalMessage');
+        const birthdayAudio = document.getElementById('birthdayAudio');
+
+        // --- Variabel Audio ---
+        let audioContext;
+        let analyser;
+        let microphone;
+        let isBlowing = false;
+        let micReady = false;
+
+        // --- Variabel Canvas ---
+        let particles = [];
+        const candles = [
+            { x: 0.35, y: 0.35, isLit: true, flameSize: 15 },
+            { x: 0.45, y: 0.32, isLit: true, flameSize: 15 },
+            { x: 0.55, y: 0.33, isLit: true, flameSize: 15 },
+            { x: 0.65, y: 0.36, isLit: true, flameSize: 15 },
+        ];
+        let messagePlayed = false;
+
+        // --- Fungsi Inisialisasi Audio ---
+        async function initAudio() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                microphone = audioContext.createMediaStreamSource(stream);
+                microphone.connect(analyser);
+                analyser.fftSize = 256;
+                micReady = true;
+                instruction.textContent = "Tiup ke mikrofon untuk memadamkan lilin!";
+            } catch (err) {
+                console.error("Izin mikrofon ditolak:", err);
+                instruction.textContent = "Mikrofon tidak aktif. Tekan & tahan untuk meniup lilin.";
+            }
+        }
+
+        // --- Fungsi Menggambar ---
+        function resizeCanvas() {
+            const size = Math.min(container.clientWidth, 500);
+            canvas.width = size;
+            canvas.height = size * 0.8;
+            draw();
+        }
+
+        function drawCake(width, height) {
+            ctx.fillStyle = '#FBBF24';
+            ctx.beginPath();
+            ctx.ellipse(width / 2, height * 0.8, width * 0.45, height * 0.08, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#FBCFE8';
+            ctx.fillRect(width * 0.2, height * 0.6, width * 0.6, height * 0.18);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(width * 0.2, height * 0.5, width * 0.6, height * 0.1);
+            ctx.fillStyle = '#F9A8D4';
+            ctx.fillRect(width * 0.2, height * 0.4, width * 0.6, height * 0.1);
+        }
+
+        function drawFriends(width, height) {
+            ctx.fillStyle = '#D1D5DB';
+            ctx.beginPath();
+            ctx.arc(width * 0.18, height * 0.7, width * 0.08, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(width * 0.12, height * 0.65);
+            ctx.lineTo(width * 0.16, height * 0.6);
+            ctx.lineTo(width * 0.18, height * 0.65);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(width * 0.2, height * 0.65);
+            ctx.lineTo(width * 0.22, height * 0.6);
+            ctx.lineTo(width * 0.24, height * 0.65);
+            ctx.fill();
+            ctx.fillStyle = '#A16207';
+            ctx.beginPath();
+            ctx.arc(width * 0.82, height * 0.7, width * 0.08, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#FBBF24';
+            ctx.beginPath();
+            ctx.arc(width * 0.78, height * 0.63, width * 0.03, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(width * 0.86, height * 0.63, width * 0.03, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawCandles(width, height) {
+            candles.forEach(candle => {
+                const candleX = width * candle.x;
+                const candleY = height * candle.y;
+                const candleWidth = width * 0.02;
+                const candleHeight = height * 0.15;
+                ctx.fillStyle = '#A7F3D0';
+                ctx.fillRect(candleX, candleY, candleWidth, candleHeight);
+                if (candle.isLit) {
+                    ctx.beginPath();
+                    ctx.fillStyle = 'orange';
+                    const flameX = candleX + candleWidth / 2;
+                    const flameY = candleY;
+                    ctx.ellipse(flameX, flameY, candle.flameSize * 0.2, candle.flameSize * 0.5, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.fillStyle = 'yellow';
+                    ctx.ellipse(flameX, flameY + 2, candle.flameSize * 0.15, candle.flameSize * 0.3, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            });
+        }
+
+        function createParticle(x, y) {
+            particles.push({ x, y, size: Math.random() * 3 + 1, speedX: Math.random() * 2 - 1, speedY: -Math.random() * 2 - 1, life: Math.random() * 30 + 30 });
+        }
+
+        function drawParticles() {
+            particles.forEach((p, index) => {
+                p.x += p.speedX;
+                p.y += p.speedY;
+                p.life--;
+                if (p.life <= 0) {
+                    particles.splice(index, 1);
+                } else {
+                    ctx.beginPath();
+                    ctx.fillStyle = `rgba(107, 114, 128, ${p.life / 60})`;
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            });
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawCake(canvas.width, canvas.height);
+            drawFriends(canvas.width, canvas.height);
+            drawCandles(canvas.width, canvas.height);
+            drawParticles();
+        }
+
+        // --- Loop Animasi & Logika ---
+        function checkMicLevel() {
+            if (!micReady) return;
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            analyser.getByteFrequencyData(dataArray);
+            let sum = 0;
+            dataArray.forEach(value => sum += value);
+            const average = sum / bufferLength;
+            isBlowing = average > 40; // Threshold tiupan
+        }
+
+        function animate() {
+            if (micReady) {
+                checkMicLevel();
+            }
+
+            if (isBlowing) {
+                candles.forEach(candle => {
+                    if (candle.isLit && candle.flameSize > 0) {
+                        candle.flameSize -= 0.5;
+                        if (Math.random() > 0.5) {
+                           createParticle(canvas.width * candle.x + (canvas.width * 0.01), canvas.height * candle.y);
+                        }
+                    }
+                    if (candle.flameSize <= 0) candle.isLit = false;
+                });
+            }
+
+            const allOut = candles.every(c => !c.isLit);
+            if (allOut && !messagePlayed) {
+                messagePlayed = true;
+                isBlowing = false;
+                showFinalMessage();
+            }
+
+            candles.forEach(candle => {
+                if (candle.isLit) {
+                    candle.flameSize += (Math.random() - 0.5) * 1.5;
+                    if (candle.flameSize < 12) candle.flameSize = 12;
+                    if (candle.flameSize > 18) candle.flameSize = 18;
+                }
+            });
+
+            draw();
+            requestAnimationFrame(animate);
+        }
+
+        function showFinalMessage() {
+            document.getElementById('instruction').style.opacity = '0';
+            document.getElementById('title').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('instruction').classList.add('hidden');
+                document.getElementById('title').classList.add('hidden');
+                finalMessage.classList.remove('hidden');
+                playBirthdayMessage();
+            }, 500);
+        }
+
+        // --- Fungsi Text-to-Speech (TTS) ---
+        // Helper: Mengubah base64 ke ArrayBuffer
+        function base64ToArrayBuffer(base64) {
+            const binaryString = window.atob(base64);
+            const len = binaryString.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+
+        // Helper: Mengubah data PCM mentah ke format file WAV
+        function pcmToWav(pcmData, sampleRate) {
+            const header = new ArrayBuffer(44);
+            const view = new DataView(header);
+            const pcm16 = new Int16Array(pcmData);
+
+            // RIFF chunk descriptor
+            writeString(view, 0, 'RIFF');
+            view.setUint32(4, 36 + pcm16.length * 2, true);
+            writeString(view, 8, 'WAVE');
+            // "fmt " sub-chunk
+            writeString(view, 12, 'fmt ');
+            view.setUint32(16, 16, true); // Subchunk1Size
+            view.setUint16(20, 1, true); // AudioFormat (PCM)
+            view.setUint16(22, 1, true); // NumChannels
+            view.setUint32(24, sampleRate, true); // SampleRate
+            view.setUint32(28, sampleRate * 2, true); // ByteRate
+            view.setUint16(32, 2, true); // BlockAlign
+            view.setUint16(34, 16, true); // BitsPerSample
+            // "data" sub-chunk
+            writeString(view, 36, 'data');
+            view.setUint32(40, pcm16.length * 2, true);
+
+            function writeString(view, offset, string) {
+                for (let i = 0; i < string.length; i++) {
+                    view.setUint8(offset + i, string.charCodeAt(i));
+                }
+            }
+            
+            return new Blob([header, pcm16], { type: 'audio/wav' });
+        }
+
+        async function playBirthdayMessage() {
+            const textPrompt = "Ucapkan dengan ceria: Selamat ulang tahun Ulan! Semoga semua keinginanmu terkabul!";
+            const payload = {
+                contents: [{ parts: [{ text: textPrompt }] }],
+                generationConfig: {
+                    responseModalities: ["AUDIO"],
+                    speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } } }
+                },
+                model: "gemini-2.5-flash-preview-tts"
+            };
+            const apiKey = "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                const part = result?.candidates?.[0]?.content?.parts?.[0];
+                const audioData = part?.inlineData?.data;
+                const mimeType = part?.inlineData?.mimeType;
+
+                if (audioData && mimeType && mimeType.startsWith("audio/")) {
+                    const sampleRateMatch = mimeType.match(/rate=(\d+)/);
+                    if (sampleRateMatch) {
+                        const sampleRate = parseInt(sampleRateMatch[1], 10);
+                        const pcmData = base64ToArrayBuffer(audioData);
+                        const wavBlob = pcmToWav(pcmData, sampleRate);
+                        const audioUrl = URL.createObjectURL(wavBlob);
+                        birthdayAudio.src = audioUrl;
+                        birthdayAudio.play();
+                    }
+                }
+            } catch (error) {
+                console.error("Gagal memutar pesan ulang tahun:", error);
+            }
+        }
+
+        // --- Event Listeners ---
+        startButton.addEventListener('click', async () => {
+            startScreen.classList.add('hidden');
+            birthdayScreen.classList.remove('hidden');
+            await initAudio();
+            resizeCanvas();
+            animate();
+        });
+
+        // Fallback jika mikrofon tidak aktif
+        function startBlowingFallback() {
+            if (!micReady) isBlowing = true;
+        }
+        function stopBlowingFallback() {
+            if (!micReady) isBlowing = false;
+        }
+
+        canvas.addEventListener('mousedown', startBlowingFallback);
+        canvas.addEventListener('mouseup', stopBlowingFallback);
+        canvas.addEventListener('mouseleave', stopBlowingFallback);
+        canvas.addEventListener('touchstart', startBlowingFallback, { passive: true });
+        canvas.addEventListener('touchend', stopBlowingFallback);
+
+        window.addEventListener('resize', resizeCanvas);
+    </script>
+</body>
+</html>
