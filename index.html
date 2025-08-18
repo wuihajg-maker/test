@@ -13,7 +13,7 @@
         body {
             font-family: 'Inter', sans-serif;
             touch-action: none;
-            overflow: hidden; /* Mencegah scroll */
+            overflow: hidden;
         }
         .font-caveat {
             font-family: 'Caveat', cursive;
@@ -22,16 +22,39 @@
             cursor: pointer;
             display: block;
         }
-        .reveal-message {
-            animation: fadeIn 2s ease-in-out forwards;
-            opacity: 0;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
         .text-shadow {
             text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        /* Style untuk pesan pop-up fullscreen */
+        #fullscreenMessage {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 192, 203, 0.7); /* Pink semi-transparan */
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            opacity: 0;
+            animation: fadeInOverlay 1s ease-in-out forwards;
+        }
+        #fullscreenMessage .popup-text {
+            transform: scale(0.5);
+            opacity: 0;
+            animation: popUpText 1s ease-in-out forwards;
+        }
+        @keyframes fadeInOverlay {
+            to { opacity: 1; }
+        }
+        @keyframes popUpText {
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
         }
     </style>
 </head>
@@ -53,18 +76,18 @@
             <h1 id="title" class="text-3xl sm:text-4xl md:text-5xl text-pink-600 font-caveat mb-4 transition-opacity duration-500 text-shadow">Selamat Ulang Tahun, Ulan!</h1>
             <canvas id="birthdayCanvas"></canvas>
             <p id="instruction" class="mt-4 text-gray-700 text-lg transition-opacity duration-500">
-                Tiup 3 kali untuk memadamkan semua lilin!
+                Tiup terus untuk memadamkan semua lilin!
             </p>
         </div>
-
-        <div id="finalMessage" class="hidden">
-            <h2 class="text-4xl sm:text-5xl md:text-6xl text-pink-700 font-caveat reveal-message text-shadow">Semoga semua keinginanmu terkabul!</h2>
-            <p class="text-gray-800 mt-4 text-xl reveal-message" style="animation-delay: 0.5s;">Happy Birthday, Sahabat Terbaikku!</p>
-        </div>
-        
-        <audio id="birthdayAudio" class="hidden"></audio>
-
     </div>
+    
+    <!-- Pesan Fullscreen Baru -->
+    <div id="fullscreenMessage" class="hidden">
+        <h2 class="popup-text text-5xl sm:text-7xl md:text-8xl text-white font-caveat text-shadow text-center" style="animation-delay: 0.5s;">Semoga semua keinginanmu terkabul!</h2>
+        <p class="popup-text text-white mt-4 text-2xl sm:text-3xl text-shadow text-center" style="animation-delay: 1s;">Happy Birthday, Sahabat Terbaikku!</p>
+    </div>
+
+    <audio id="birthdayAudio" class="hidden"></audio>
 
     <script>
         // --- Elemen DOM ---
@@ -75,7 +98,7 @@
         const canvas = document.getElementById('birthdayCanvas');
         const ctx = canvas.getContext('2d');
         const instruction = document.getElementById('instruction');
-        const finalMessage = document.getElementById('finalMessage');
+        const fullscreenMessage = document.getElementById('fullscreenMessage');
         const birthdayAudio = document.getElementById('birthdayAudio');
         const backgroundCanvas = document.getElementById('backgroundCanvas');
         const bgCtx = backgroundCanvas.getContext('2d');
@@ -84,24 +107,26 @@
         let audioContext;
         let analyser;
         let microphone;
-        let canBlow = true; // Flag untuk mendeteksi tiupan baru
+        let isBlowing = false; 
         let micReady = false;
         let micLevel = 0;
         const BLOW_THRESHOLD = 30;
 
         // --- Variabel Canvas ---
         let particles = [];
-        let confetti = [];
+        let finalConfetti = [];
+        let rainingConfetti = [];
         let stars = [];
         const candles = [
-            { x: 0.30, y: 0.38, isLit: true, flameSize: 15 },
-            { x: 0.38, y: 0.35, isLit: true, flameSize: 15 },
-            { x: 0.46, y: 0.34, isLit: true, flameSize: 15 },
-            { x: 0.54, y: 0.34, isLit: true, flameSize: 15 },
-            { x: 0.62, y: 0.35, isLit: true, flameSize: 15 },
-            { x: 0.70, y: 0.38, isLit: true, flameSize: 15 },
+            { x: 0.30, y: 0.42, isLit: true, flameSize: 15 },
+            { x: 0.38, y: 0.39, isLit: true, flameSize: 15 },
+            { x: 0.46, y: 0.38, isLit: true, flameSize: 15 },
+            { x: 0.54, y: 0.38, isLit: true, flameSize: 15 },
+            { x: 0.62, y: 0.39, isLit: true, flameSize: 15 },
+            { x: 0.70, y: 0.42, isLit: true, flameSize: 15 },
         ];
         let messagePlayed = false;
+        let finalAnimationStarted = false;
 
         // --- Inisialisasi Audio ---
         async function initAudio() {
@@ -113,30 +138,36 @@
                 microphone.connect(analyser);
                 analyser.fftSize = 256;
                 micReady = true;
-                instruction.textContent = "Tiup 3 kali! Perhatikan bar di bawah.";
+                instruction.textContent = "Tiup terus! Perhatikan bar di bawah.";
             } catch (err) {
                 console.error("Izin mikrofon ditolak:", err);
-                instruction.textContent = "Mikrofon tidak aktif. Klik 3 kali untuk meniup.";
+                instruction.textContent = "Mikrofon tidak aktif. Tekan & tahan untuk meniup.";
             }
         }
 
-        // --- Musik Ulang Tahun dengan Tone.js ---
+        // --- Musik Ulang Tahun dengan Tone.js (Gitar Akustik) ---
         function playBirthdaySong() {
-            const synth = new Tone.Synth().toDestination();
+            const synth = new Tone.PluckSynth().toDestination();
+            // Menaikkan volume agar lebih terdengar
+            synth.volume.value = 0; 
+            // Menambahkan sedikit gema agar lebih indah
+            const reverb = new Tone.Reverb(1.5).toDestination();
+            synth.connect(reverb);
+
             const melody = [
-                { note: 'G4', duration: '8n', time: '0:0' }, { note: 'G4', duration: '8n', time: '0:0:2' },
-                { note: 'A4', duration: '4n', time: '0:1' }, { note: 'G4', duration: '4n', time: '0:2' },
-                { note: 'C5', duration: '4n', time: '0:3' }, { note: 'B4', duration: '2n', time: '1:0' },
-                { note: 'G4', duration: '8n', time: '2:0' }, { note: 'G4', duration: '8n', time: '2:0:2' },
-                { note: 'A4', duration: '4n', time: '2:1' }, { note: 'G4', duration: '4n', time: '2:2' },
-                { note: 'D5', duration: '4n', time: '2:3' }, { note: 'C5', duration: '2n', time: '3:0' },
-                { note: 'G4', duration: '8n', time: '4:0' }, { note: 'G4', duration: '8n', time: '4:0:2' },
-                { note: 'G5', duration: '4n', time: '4:1' }, { note: 'E5', duration: '4n', time: '4:2' },
-                { note: 'C5', duration: '4n', time: '4:3' }, { note: 'B4', duration: '4n', time: '5:0' },
-                { note: 'A4', duration: '2n', time: '5:1' },
-                { note: 'F5', duration: '8n', time: '6:0' }, { note: 'F5', duration: '8n', time: '6:0:2' },
-                { note: 'E5', duration: '4n', time: '6:1' }, { note: 'C5', duration: '4n', time: '6:2' },
-                { note: 'D5', duration: '4n', time: '6:3' }, { note: 'C5', duration: '2n', time: '7:0' }
+                { note: 'G3', duration: '8n', time: '0:0' }, { note: 'G3', duration: '8n', time: '0:0:2' },
+                { note: 'A3', duration: '4n', time: '0:1' }, { note: 'G3', duration: '4n', time: '0:2' },
+                { note: 'C4', duration: '4n', time: '0:3' }, { note: 'B3', duration: '2n', time: '1:0' },
+                { note: 'G3', duration: '8n', time: '2:0' }, { note: 'G3', duration: '8n', time: '2:0:2' },
+                { note: 'A3', duration: '4n', time: '2:1' }, { note: 'G3', duration: '4n', time: '2:2' },
+                { note: 'D4', duration: '4n', time: '2:3' }, { note: 'C4', duration: '2n', time: '3:0' },
+                { note: 'G3', duration: '8n', time: '4:0' }, { note: 'G3', duration: '8n', time: '4:0:2' },
+                { note: 'G4', duration: '4n', time: '4:1' }, { note: 'E4', duration: '4n', time: '4:2' },
+                { note: 'C4', duration: '4n', time: '4:3' }, { note: 'B3', duration: '4n', time: '5:0' },
+                { note: 'A3', duration: '2n', time: '5:1' },
+                { note: 'F4', duration: '8n', time: '6:0' }, { note: 'F4', duration: '8n', time: '6:0:2' },
+                { note: 'E4', duration: '4n', time: '6:1' }, { note: 'C4', duration: '4n', time: '6:2' },
+                { note: 'D4', duration: '4n', time: '6:3' }, { note: 'C4', duration: '2n', time: '7:0' }
             ];
             const part = new Tone.Part((time, value) => {
                 synth.triggerAttackRelease(value.note, value.duration, time);
@@ -179,16 +210,52 @@
         }
 
         function drawCake(width, height) {
-            ctx.fillStyle = '#FBBF24';
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
             ctx.beginPath();
-            ctx.ellipse(width / 2, height * 0.8, width * 0.45, height * 0.08, 0, 0, Math.PI * 2);
+            ctx.ellipse(width / 2, height * 0.79, width * 0.4, height * 0.07, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#fde047';
+            ctx.beginPath();
+            ctx.ellipse(width / 2, height * 0.78, width * 0.45, height * 0.08, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#facc15';
+            ctx.beginPath();
+            ctx.ellipse(width / 2, height * 0.76, width * 0.45, height * 0.08, 0, 0, Math.PI * 2);
+            ctx.fill();
+            const cakeX = width * 0.25, cakeY = height * 0.5, cakeW = width * 0.5, cakeH = height * 0.25, cakeRadiusY = height * 0.05;
+            ctx.fillStyle = '#FBCFE8';
+            ctx.beginPath();
+            ctx.rect(cakeX, cakeY, cakeW, cakeH);
+            ctx.fill();
+            ctx.fillStyle = '#F9A8D4';
+            ctx.beginPath();
+            ctx.ellipse(cakeX + cakeW / 2, cakeY + cakeH, cakeW / 2, cakeRadiusY, 0, 0, Math.PI * 2);
             ctx.fill();
             ctx.fillStyle = '#FBCFE8';
-            ctx.fillRect(width * 0.2, height * 0.6, width * 0.6, height * 0.18);
+            ctx.beginPath();
+            ctx.ellipse(cakeX + cakeW / 2, cakeY, cakeW / 2, cakeRadiusY, 0, 0, Math.PI * 2);
+            ctx.fill();
             ctx.fillStyle = '#ffffff';
-            ctx.fillRect(width * 0.2, height * 0.5, width * 0.6, height * 0.1);
+            ctx.beginPath();
+            ctx.ellipse(cakeX + cakeW / 2, cakeY - (height * 0.01), cakeW / 2, cakeRadiusY, 0, 0, Math.PI * 2);
+            ctx.fill();
+            for (let i = 0; i < 10; i++) {
+                const dripX = cakeX + (i * (cakeW / 9));
+                const dripY = cakeY + (height * 0.02);
+                const dripRadius = Math.random() * 8 + 8;
+                ctx.beginPath();
+                ctx.arc(dripX, dripY, dripRadius, 0, Math.PI);
+                ctx.fill();
+            }
             ctx.fillStyle = '#F9A8D4';
-            ctx.fillRect(width * 0.2, height * 0.4, width * 0.6, height * 0.1);
+            for (let i = 0; i < 8; i++) {
+                 const swirlAngle = (i / 8) * Math.PI * 2;
+                 const swirlX = (cakeX + cakeW / 2) + (Math.cos(swirlAngle) * cakeW * 0.35);
+                 const swirlY = cakeY + (Math.sin(swirlAngle) * cakeRadiusY * 0.35);
+                 ctx.beginPath();
+                 ctx.arc(swirlX, swirlY, 8, 0, Math.PI * 2);
+                 ctx.fill();
+            }
         }
 
         function drawFriends(width, height) {
@@ -237,10 +304,10 @@
             });
         }
 
-        function createConfetti() {
+        function createFinalConfetti() {
             const colors = ['#f43f5e', '#ec4899', '#d946ef', '#a855f7', '#8b5cf6', '#6366f1'];
             for (let i = 0; i < 150; i++) {
-                confetti.push({
+                finalConfetti.push({
                     x: canvas.width / 2, y: canvas.height / 2,
                     size: Math.random() * 5 + 2,
                     speedX: Math.random() * 10 - 5, speedY: Math.random() * -15 - 5,
@@ -250,10 +317,10 @@
                 });
             }
         }
-        function drawConfetti() {
-            confetti.forEach((c, index) => {
+        function drawFinalConfetti() {
+            finalConfetti.forEach((c, index) => {
                 c.x += c.speedX; c.y += c.speedY; c.speedY += c.gravity;
-                if (c.y > canvas.height) { confetti.splice(index, 1); }
+                if (c.y > canvas.height) { finalConfetti.splice(index, 1); }
                 else {
                     ctx.save();
                     ctx.translate(c.x, c.y);
@@ -276,6 +343,28 @@
                 bgCtx.fillStyle = `rgba(255, 255, 255, ${star.alpha})`;
                 bgCtx.fill();
             });
+            // Hujan konfeti dimulai setelah lilin padam
+            if (finalAnimationStarted && Math.random() > 0.9) { // Dibuat lebih sering
+                rainingConfetti.push({
+                    x: Math.random() * backgroundCanvas.width, y: -10,
+                    size: Math.random() * 6 + 3,
+                    speedX: Math.random() * 2 - 1, speedY: Math.random() * 2 + 1,
+                    color: ['#f43f5e', '#ec4899', '#d946ef', '#a855f7'][Math.floor(Math.random() * 4)],
+                    rotation: Math.random() * 360
+                });
+            }
+            rainingConfetti.forEach((c, index) => {
+                c.x += c.speedX; c.y += c.speedY;
+                if (c.y > backgroundCanvas.height) { rainingConfetti.splice(index, 1); }
+                else {
+                    bgCtx.save();
+                    bgCtx.translate(c.x, c.y);
+                    bgCtx.rotate(c.rotation * Math.PI / 180);
+                    bgCtx.fillStyle = c.color;
+                    bgCtx.fillRect(-c.size / 2, -c.size / 2, c.size, c.size);
+                    bgCtx.restore();
+                }
+            });
         }
 
         function draw() {
@@ -284,7 +373,7 @@
             drawFriends(canvas.width, canvas.height);
             drawCandles(canvas.width, canvas.height);
             drawParticles();
-            drawConfetti();
+            drawFinalConfetti();
             drawMicIndicator(canvas.width, canvas.height);
         }
 
@@ -297,45 +386,34 @@
             let sum = 0;
             dataArray.forEach(value => sum += value);
             micLevel = sum / bufferLength;
-
-            // Logika baru untuk 3 tiupan
-            if (micLevel > BLOW_THRESHOLD && canBlow) {
-                canBlow = false; // Mencegah tiupan panjang dihitung berkali-kali
-                extinguishCandles(2); // Padamkan 2 lilin setiap tiupan
-            } else if (micLevel < BLOW_THRESHOLD) {
-                canBlow = true; // Izinkan tiupan berikutnya setelah suara reda
-            }
-        }
-        
-        function extinguishCandles(count) {
-             let extinguishedCount = 0;
-             for (let i = 0; i < candles.length; i++) {
-                 if (candles[i].isLit) {
-                     candles[i].isLit = false;
-                     // Efek asap
-                     for(let j = 0; j < 20; j++) {
-                         createParticle(canvas.width * candles[i].x + (canvas.width * 0.01), canvas.height * candles[i].y);
-                     }
-                     extinguishedCount++;
-                     if (extinguishedCount >= count) {
-                         break;
-                     }
-                 }
-             }
+            isBlowing = micLevel > BLOW_THRESHOLD;
         }
 
         function animate() {
             drawBackground();
-
             if (micReady) { checkMicLevel(); }
+
+            if (isBlowing) {
+                candles.forEach(candle => {
+                    if (candle.isLit && candle.flameSize > 0) {
+                        candle.flameSize -= 0.5;
+                        if (Math.random() > 0.5) { 
+                            createParticle(canvas.width * candle.x + (canvas.width * 0.01), canvas.height * candle.y); 
+                        }
+                    }
+                    if (candle.flameSize <= 0) {
+                        candle.isLit = false;
+                    }
+                });
+            }
 
             const allOut = candles.every(c => !c.isLit);
             if (allOut && !messagePlayed) {
                 messagePlayed = true;
-                createConfetti();
+                finalAnimationStarted = true; // Mulai hujan konfeti
+                createFinalConfetti();
                 showFinalMessage();
             }
-
             candles.forEach(candle => {
                 if (candle.isLit) {
                     candle.flameSize += (Math.random() - 0.5) * 1.5;
@@ -343,20 +421,14 @@
                     if (candle.flameSize > 18) candle.flameSize = 18;
                 }
             });
-
             draw();
             requestAnimationFrame(animate);
         }
 
         function showFinalMessage() {
-            instruction.style.opacity = '0';
-            title.style.opacity = '0';
-            setTimeout(() => {
-                instruction.classList.add('hidden');
-                title.classList.add('hidden');
-                finalMessage.classList.remove('hidden');
-                playBirthdayMessage();
-            }, 500);
+            container.style.display = 'none'; // Sembunyikan container utama
+            fullscreenMessage.classList.remove('hidden');
+            playBirthdayMessage();
         }
 
         // --- Fungsi Text-to-Speech (TTS) ---
@@ -398,14 +470,22 @@
             animate();
         });
 
-        // Fallback jika mikrofon tidak aktif (klik 3x)
-        function blowFallback() {
+        // Fallback jika mikrofon tidak aktif (klik & tahan)
+        function startBlowingFallback() {
             if (!micReady) {
-                extinguishCandles(2);
+                isBlowing = true;
             }
         }
-        canvas.addEventListener('mousedown', blowFallback);
-        canvas.addEventListener('touchstart', blowFallback, { passive: true });
+        function stopBlowingFallback() {
+             if (!micReady) {
+                isBlowing = false;
+            }
+        }
+        canvas.addEventListener('mousedown', startBlowingFallback);
+        canvas.addEventListener('mouseup', stopBlowingFallback);
+        canvas.addEventListener('mouseleave', stopBlowingFallback);
+        canvas.addEventListener('touchstart', startBlowingFallback, { passive: true });
+        canvas.addEventListener('touchend', stopBlowingFallback);
 
         window.addEventListener('resize', resizeCanvas);
     </script>
