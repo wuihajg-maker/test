@@ -46,7 +46,7 @@
             <h1 id="title" class="text-3xl sm:text-4xl md:text-5xl text-pink-500 font-caveat mb-4 transition-opacity duration-500">Selamat Ulang Tahun, Ulan!</h1>
             <canvas id="birthdayCanvas"></canvas>
             <p id="instruction" class="mt-4 text-gray-600 text-lg transition-opacity duration-500">
-                Tiup ke mikrofon untuk memadamkan lilin!
+                Tiup 3 kali untuk memadamkan lilinnya!
             </p>
         </div>
 
@@ -75,7 +75,7 @@
         let audioContext;
         let analyser;
         let microphone;
-        let isBlowing = false;
+        let canBlow = true; // Flag untuk mendeteksi tiupan baru
         let micReady = false;
         let micLevel = 0;
         const BLOW_THRESHOLD = 35; // Menurunkan threshold agar lebih sensitif
@@ -83,10 +83,9 @@
         // --- Variabel Canvas ---
         let particles = [];
         const candles = [
-            { x: 0.35, y: 0.35, isLit: true, flameSize: 15 },
-            { x: 0.45, y: 0.32, isLit: true, flameSize: 15 },
-            { x: 0.55, y: 0.33, isLit: true, flameSize: 15 },
-            { x: 0.65, y: 0.36, isLit: true, flameSize: 15 },
+            { x: 0.40, y: 0.32, isLit: true, flameSize: 15 },
+            { x: 0.50, y: 0.33, isLit: true, flameSize: 15 },
+            { x: 0.60, y: 0.32, isLit: true, flameSize: 15 },
         ];
         let messagePlayed = false;
 
@@ -95,12 +94,12 @@
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                analyser = audio.createAnalyser();
+                analyser = audioContext.createAnalyser();
                 microphone = audioContext.createMediaStreamSource(stream);
                 microphone.connect(analyser);
                 analyser.fftSize = 256;
                 micReady = true;
-                instruction.textContent = "Tiup ke mikrofon! Perhatikan bar di bawah.";
+                instruction.textContent = "Tiup 3 kali! Perhatikan bar di bawah.";
             } catch (err) {
                 console.error("Izin mikrofon ditolak:", err);
                 instruction.textContent = "Mikrofon tidak aktif. Tekan & tahan untuk meniup lilin.";
@@ -115,7 +114,6 @@
             draw();
         }
         
-        // **BARU: Fungsi untuk menggambar indikator mikrofon**
         function drawMicIndicator(width, height) {
             if (!micReady) return;
             
@@ -124,18 +122,15 @@
             const x = (width - barWidth) / 2;
             const y = height - 20;
 
-            // Latar belakang bar
             ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
             ctx.fillRect(x, y, barWidth, barHeight);
 
-            // Level suara
-            const levelWidth = (micLevel / 100) * barWidth; // Asumsi level max 100
-            ctx.fillStyle = '#34D399'; // emerald-400
+            const levelWidth = (micLevel / 100) * barWidth;
+            ctx.fillStyle = '#34D399';
             ctx.fillRect(x, y, levelWidth, barHeight);
             
-            // Garis threshold
             const thresholdX = x + (BLOW_THRESHOLD / 100) * barWidth;
-            ctx.fillStyle = '#EF4444'; // red-500
+            ctx.fillStyle = '#EF4444';
             ctx.fillRect(thresholdX, y, 2, barHeight);
         }
 
@@ -229,7 +224,7 @@
             drawFriends(canvas.width, canvas.height);
             drawCandles(canvas.width, canvas.height);
             drawParticles();
-            drawMicIndicator(canvas.width, canvas.height); // Panggil fungsi indikator
+            drawMicIndicator(canvas.width, canvas.height);
         }
 
         // --- Loop Animasi & Logika ---
@@ -241,7 +236,23 @@
             let sum = 0;
             dataArray.forEach(value => sum += value);
             micLevel = sum / bufferLength;
-            isBlowing = micLevel > BLOW_THRESHOLD;
+
+            // Logika baru untuk tiupan
+            if (micLevel > BLOW_THRESHOLD && canBlow) {
+                canBlow = false; // Mencegah tiupan panjang dihitung berkali-kali
+                
+                // Cari lilin yang masih menyala dan padamkan
+                const litCandle = candles.find(c => c.isLit);
+                if (litCandle) {
+                    litCandle.isLit = false;
+                    // Efek asap saat lilin padam
+                    for(let i = 0; i < 20; i++) {
+                        createParticle(canvas.width * litCandle.x + (canvas.width * 0.01), canvas.height * litCandle.y);
+                    }
+                }
+            } else if (micLevel < BLOW_THRESHOLD) {
+                canBlow = true; // Izinkan tiupan berikutnya setelah suara reda
+            }
         }
 
         function animate() {
@@ -249,22 +260,9 @@
                 checkMicLevel();
             }
 
-            if (isBlowing) {
-                candles.forEach(candle => {
-                    if (candle.isLit && candle.flameSize > 0) {
-                        candle.flameSize -= 0.5;
-                        if (Math.random() > 0.5) {
-                           createParticle(canvas.width * candle.x + (canvas.width * 0.01), canvas.height * candle.y);
-                        }
-                    }
-                    if (candle.flameSize <= 0) candle.isLit = false;
-                });
-            }
-
             const allOut = candles.every(c => !c.isLit);
             if (allOut && !messagePlayed) {
                 messagePlayed = true;
-                isBlowing = false;
                 showFinalMessage();
             }
 
@@ -380,16 +378,27 @@
         });
 
         // Fallback jika mikrofon tidak aktif
+        let isFallbackBlowing = false;
         function startBlowingFallback() {
-            if (!micReady) isBlowing = true;
+            if (!micReady && !isFallbackBlowing) {
+                isFallbackBlowing = true;
+                const litCandle = candles.find(c => c.isLit);
+                if (litCandle) {
+                    litCandle.isLit = false;
+                    for(let i = 0; i < 20; i++) {
+                        createParticle(canvas.width * litCandle.x + (canvas.width * 0.01), canvas.height * litCandle.y);
+                    }
+                }
+            }
         }
         function stopBlowingFallback() {
-            if (!micReady) isBlowing = false;
+             if (!micReady) {
+                isFallbackBlowing = false;
+            }
         }
 
         canvas.addEventListener('mousedown', startBlowingFallback);
         canvas.addEventListener('mouseup', stopBlowingFallback);
-        canvas.addEventListener('mouseleave', stopBlowingFallback);
         canvas.addEventListener('touchstart', startBlowingFallback, { passive: true });
         canvas.addEventListener('touchend', stopBlowingFallback);
 
