@@ -35,27 +35,28 @@
         }
         #container {
             width: 100%;
-            max-width: 400px;
+            max-width: 380px;
             margin: 0 auto;
             text-align: center;
-            padding: 1rem;
+            padding: 0.5rem;
             position: relative;
             background-color: #ffffff;
             border-radius: 1.5rem;
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         }
 
+        /* --- PENGATURAN KUE DAN BINGKAI DIKEMBALIKAN SEPERTI SEBELUMNYA --- */
         .canvas-holder {
             position: relative;
-            width: 90%;
-            max-width: 300px; 
+            width: 300px;
+            height: 380px;
+            max-width: 100%; /* Dibuat agar tetap responsif jika container lebih kecil */
             margin: 0.5rem auto 0;
-            aspect-ratio: 1 / 1;
-            background-size: contain; 
+            background-size: 100% 100%; /* Memaksa gambar mengisi penuh bingkai */
             background-repeat: no-repeat;
             background-position: center;
             background-image: url('./kue-ultah.png'); 
-            border-radius: 1rem;
+            border-radius: 0.5rem; /* Bingkai tipis */
             overflow: hidden;
         }
         #birthdayCanvas {
@@ -112,7 +113,7 @@
         </p>
     </div>
     
-    <audio id="birthdayAudio" class="hidden"></audio>
+    <audio id="backgroundMusic" src="./musik-latar.mp3" loop></audio>
 </div>
 
 <script>
@@ -125,6 +126,7 @@
     const instruction = document.getElementById('instruction');
     const finalMessage = document.getElementById('finalMessage');
     const titleElement = document.getElementById('title');
+    const backgroundMusic = document.getElementById('backgroundMusic');
 
     let audioContext, analyser, microphone;
     let isBlowing = false;
@@ -137,7 +139,6 @@
     const TOTAL_BLOWS = 3;
     const COOLDOWN_TIME = 2000;
 
-    // --- KOORDINAT LILIN FINAL SESUAI PERMINTAAN ANDA ---
     const candles = [
         { x: 0.435, y: 0.30, isLit: true, health: TOTAL_BLOWS, flameSize: 15, candleHeight: 45, candleWidth: 6, color: '#FFFFFF' },
         { x: 0.50,  y: 0.25, isLit: true, health: TOTAL_BLOWS, flameSize: 15, candleHeight: 45, candleWidth: 6, color: '#FFFFFF' },
@@ -155,7 +156,7 @@
             micReady = true;
         } catch (err) {
             console.error("Izin mikrofon ditolak:", err);
-            instruction.textContent = "Mikrofon tidak aktif. Klik untuk meniup.";
+            instruction.textContent = "Izin mikrofon ditolak.";
         }
     }
 
@@ -263,14 +264,14 @@
     }
 
     function checkMicLevel() {
-        if (!micReady || !canBlow) {
+        if (!micReady) {
             isBlowing = false;
             return;
         }
         const dataArray = new Uint8Array(analyser.frequencyBinCount);
         analyser.getByteFrequencyData(dataArray);
         let sum = dataArray.reduce((a, b) => a + b, 0);
-        isBlowing = (sum / dataArray.length) > 60;
+        isBlowing = (sum / dataArray.length) > 45; 
     }
     
     function handleBlow() {
@@ -309,7 +310,7 @@
         requestAnimationFrame(animate);
         checkMicLevel();
 
-        if (isBlowing && !lastIsBlowing) {
+        if (isBlowing && !lastIsBlowing && canBlow) {
              handleBlow();
         }
         lastIsBlowing = isBlowing;
@@ -329,6 +330,8 @@
     }
 
     startButton.addEventListener('click', async () => {
+        backgroundMusic.play();
+
         startScreen.classList.add('hidden');
         birthdayScreen.classList.remove('hidden');
         
@@ -344,7 +347,7 @@
         });
     });
 
-    canvas.addEventListener('click', handleBlow);
+    // canvas.addEventListener('click', handleBlow);
 
     window.addEventListener('resize', resizeCanvas);
 
