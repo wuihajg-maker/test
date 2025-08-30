@@ -7,95 +7,14 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Caveat:wght@700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            touch-action: none;
-            background-image: url('./pattern-ulang-tahun.png');
-            background-repeat: repeat;
-            background-size: 250px 250px;
-            background-color: #fce4ec;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            padding: 1rem;
-            overflow: hidden; 
-        }
-        .font-caveat {
-            font-family: 'Caveat', cursive;
-        }
-        .reveal-message {
-            animation: fadeIn 2s ease-in-out forwards;
-            opacity: 0;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        #container {
-            width: 100%;
-            max-width: 380px;
-            margin: 0 auto;
-            text-align: center;
-            padding: 0.5rem;
-            position: relative;
-            background-color: #ffffff;
-            border-radius: 1.5rem;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-        }
-
-        .canvas-holder {
-            position: relative;
-            width: 300px;
-            height: 380px;
-            max-width: 100%;
-            margin: 0.5rem auto 0;
-            background-size: 100% 100%;
-            background-repeat: no-repeat;
-            background-position: center;
-            background-image: url('./kue-ultah.png'); 
-            border-radius: 0.5rem;
-            overflow: hidden;
-        }
-        #birthdayCanvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            /* Dihapus: cursor: pointer; */
-        }
-
-        .animated-title {
-            animation: bounceIn 1s ease-out forwards;
-        }
-
-        @keyframes bounceIn {
-            0% { opacity: 0; transform: scale(0.3); }
-            50% { opacity: 1; transform: scale(1.1); }
-            70% { transform: scale(0.9); }
-            100% { opacity: 1; transform: scale(1); }
-        }
-        
-        #confettiCanvas {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 999;
-        }
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Caveat:wght@700&family=Playpen+Sans:wght@300;400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <canvas id="confettiCanvas"></canvas>
 
 <div id="container"> 
-    
     <div id="startScreen">
         <h1 class="text-4xl sm:text-5xl text-pink-500 font-caveat mb-4">Hai Ulan!</h1>
         <p class="text-gray-700 mb-8 text-lg">Ada kejutan kecil buat kamu...</p>
@@ -105,311 +24,80 @@
     </div>
 
     <div id="birthdayScreen" class="hidden">
-        
         <h1 id="title" class="text-3xl sm:text-4xl md:text-5xl text-pink-500 font-caveat mb-4">
             ciee ultah niyeee
         </h1>
-        
-        <div class="canvas-holder"> <canvas id="birthdayCanvas"></canvas>
+        <div class="canvas-holder">
+            <canvas id="birthdayCanvas"></canvas>
         </div>
-
-        <p id="instruction" class="mt-4 text-gray-600 text-base font-medium h-12 flex items-center justify-center">
-            </p>
+        <p id="instruction" class="mt-4 text-gray-600 text-base font-medium h-12 flex items-center justify-center"></p>
     </div>
-    
-    <audio id="backgroundMusic" src="./musik-latar.mp3" loop></audio>
+    <audio id="backgroundMusic" src="stiker/musik-latar.mp3" loop></audio>
 </div>
 
-<script>
-    const container = document.getElementById('container');
-    const startScreen = document.getElementById('startScreen');
-    const birthdayScreen = document.getElementById('birthdayScreen');
-    const startButton = document.getElementById('startButton');
-    const canvas = document.getElementById('birthdayCanvas');
-    const ctx = canvas.getContext('2d');
-    const instruction = document.getElementById('instruction');
-    const finalMessage = document.getElementById('finalMessage');
-    const titleElement = document.getElementById('title');
-    const backgroundMusic = document.getElementById('backgroundMusic');
+<div class="gift-box hidden" id="giftContainer" aria-label="Kotak kado — klik untuk buka galeri">
+    <div class="bear-head">
+        <div class="bear-ear left"></div>
+        <div class="bear-ear right"></div>
+        <div class="bear-face">
+            <div class="bear-eye left"></div>
+            <div class="bear-eye right"></div>
+            <div class="bear-nose"></div>
+            <div class="bear-mouth"></div>
+        </div>
+    </div>
+    <div class="gift-lid"></div>
+    <div class="confetti"></div>
+    <div class="decorations">
+        <span class="star"></span><span class="star"></span><span class="star"></span><span class="star"></span>
+        <span class="star"></span><span class="star"></span><span class="star"></span><span class="star"></span>
+        <span class="circle"></span><span class="circle"></span>
+        <span class="heart"></span><span class="heart"></span>
+    </div>
+</div>
 
-    const confettiCanvas = document.getElementById('confettiCanvas');
-    const confettiCtx = confettiCanvas.getContext('2d');
-    let confettiParticles = [];
+<div id="galleryContainer" class="gallery-container" aria-hidden="true">
+    <div id="confetti-rain-bg"></div>
+    <div class="gallery-content" role="dialog" aria-label="Galeri foto">
+        <span id="closeGallery" class="close-button" title="Tutup">&times;</span>
 
-    let audioContext, analyser, microphone;
-    let isBlowing = false;
-    let micReady = false;
-    let particles = [];
-    let messagePlayed = false;
+        <div class="gallery-slide">
+            <div class="img-wrap"><img src="stiker/foto1.png" alt="Foto 1"></div>
+        </div>
+        <div class="gallery-slide">
+            <div class="img-wrap"><img src="stiker/foto2.png" alt="Foto 2"></div>
+        </div>
+        <div class="gallery-slide">
+            <div class="img-wrap"><img src="stiker/foto3.png" alt="Foto 3"></div>
+        </div>
+        <div class="gallery-slide">
+            <div class="img-wrap"><img src="stiker/foto4.png" alt="Foto 4"></div>
+        </div>
+        <div class="gallery-slide">
+            <div class="img-wrap">
+                <img src="stiker/foto5.png" alt="Foto 5">
+                <div class="final-slide-indicator">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M22 6C22 4.9 21.1 4 20 4H4C2.9 4 2 4.9 2 6V18C2 19.1 2.9 20 4 20H20C21.1 20 22 19.1 22 18V6ZM20 6L12 11L4 6H20ZM20 18H4V8L12 13L20 8V18Z"/></svg>
+                </div>
+            </div>
+        </div>
 
-    let blowCount = 0;
-    let canBlow = true;
-    const TOTAL_BLOWS = 3;
-    const COOLDOWN_TIME = 2000;
+        <a class="prev" id="prevBtn" title="Sebelumnya">&#10094;</a>
+        <a class="next" id="nextBtn" title="Berikutnya">&#10095;</a>
 
-    const candles = [
-        { x: 0.435, y: 0.30, isLit: true, health: TOTAL_BLOWS, flameSize: 15, candleHeight: 45, candleWidth: 6, color: '#FFFFFF' },
-        { x: 0.50,  y: 0.25, isLit: true, health: TOTAL_BLOWS, flameSize: 15, candleHeight: 45, candleWidth: 6, color: '#FFFFFF' },
-        { x: 0.565, y: 0.30, isLit: true, health: TOTAL_BLOWS, flameSize: 15, candleHeight: 45, candleWidth: 6, color: '#FFFFFF' },
-    ];
+        <div id="letter-container">
+            <div class="letter-paper">
+                <h2>Untuk kamu...</h2>
+                <p class="typing-text" data-text="Happy birthday ulan 🥳🎊🎉"></p>
+                <p class="typing-text" data-text="Semoga hari ini menjadi awal dari tahun yang penuh dengan kebahagiaan, tawa, dan semua impianmu menjadi kenyataan."></p>
+                <p class="typing-text" data-text="Aku bakal dukung kamu apapun itu dan selalu doakan yang terbaik, jaga diri baik² yah  di sana  sehat selalu"></p>
+                <p class="typing-text" data-text="Btw jangan marah yah kalau pake sticker itu 🤣🤣🤣"></p>
+                <button id="repeatGalleryBtn" class="letter-button">liat ulang</button>
+            </div>
+        </div>
+    </div>
+</div>
 
-    async function initAudio() {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            analyser = audioContext.createAnalyser();
-            microphone = audioContext.createMediaStreamSource(stream);
-            microphone.connect(analyser);
-            analyser.fftSize = 256;
-            micReady = true;
-        } catch (err) {
-            console.error("Izin mikrofon ditolak:", err);
-            instruction.innerHTML = "Nyalain mikrofonnya dong<br>Coba relog halaman terus izinkan okey";
-            micReady = false;
-        }
-    }
-
-    function resizeCanvas() {
-        const holder = document.querySelector('.canvas-holder');
-        const rect = holder.getBoundingClientRect();
-        const dpr = window.devicePixelRatio || 1;
-        
-        canvas.width = rect.width * dpr;
-        canvas.height = rect.height * dpr;
-        canvas.style.width = `${rect.width}px`;
-        canvas.style.height = `${rect.height}px`;
-        ctx.scale(dpr, dpr);
-    }
-    
-    function resizeConfettiCanvas() {
-        confettiCanvas.width = window.innerWidth;
-        confettiCanvas.height = window.innerHeight;
-    }
-
-    function drawCandleSticks() {
-        const rect = canvas.getBoundingClientRect();
-        candles.forEach(candle => {
-            const baseX = rect.width * candle.x;
-            const baseY = rect.height * candle.y;
-            const candleWidth = candle.candleWidth;
-            const candleHeight = candle.candleHeight;
-            const radius = candleWidth / 3;
-            const topY = baseY - candleHeight;
-
-            ctx.beginPath();
-            ctx.moveTo(baseX - candleWidth / 2, baseY);
-            ctx.lineTo(baseX - candleWidth / 2, topY + radius);
-            ctx.arcTo(baseX - candleWidth / 2, topY, baseX - candleWidth / 2 + radius, topY, radius);
-            ctx.lineTo(baseX + candleWidth / 2 - radius, topY);
-            ctx.arcTo(baseX + candleWidth / 2, topY, baseX + candleWidth / 2, topY + radius, radius);
-            ctx.lineTo(baseX + candleWidth / 2, baseY);
-            ctx.closePath();
-
-            const gradient = ctx.createLinearGradient(baseX - candleWidth / 2, topY, baseX + candleWidth / 2, topY);
-            gradient.addColorStop(0, '#e0e0e0');
-            gradient.addColorStop(0.5, candle.color);
-            gradient.addColorStop(1, '#c0c0c0');
-            ctx.fillStyle = gradient;
-            ctx.fill();
-
-            ctx.fillStyle = '#4b3b3b';
-            ctx.fillRect(baseX - 0.5, topY - 5, 1, 5);
-        });
-    }
-
-    function drawFlames() {
-        const rect = canvas.getBoundingClientRect();
-        candles.forEach(candle => {
-            if (candle.isLit) {
-                const flameX = rect.width * candle.x;
-                const topOfCandle = (rect.height * candle.y) - candle.candleHeight;
-                
-                const targetFlameSize = (candle.health / TOTAL_BLOWS) * 15;
-                candle.flameSize += (targetFlameSize - candle.flameSize) * 0.1; 
-                const currentFlameSize = candle.flameSize + (Math.random() - 0.5) * 2;
-                const flameY = topOfCandle - (currentFlameSize * 0.7);
-
-                if (currentFlameSize < 1) return;
-
-                const glow = ctx.createRadialGradient(flameX, flameY, 0, flameX, flameY, currentFlameSize * 1.2);
-                glow.addColorStop(0, 'rgba(255, 200, 100, 0.7)');
-                glow.addColorStop(1, 'rgba(255, 200, 100, 0)');
-                ctx.fillStyle = glow;
-                ctx.beginPath();
-                ctx.arc(flameX, flameY, currentFlameSize * 1.2, 0, Math.PI * 2);
-                ctx.fill();
-
-                ctx.fillStyle = `rgba(255, 165, 0, 0.8)`;
-                ctx.beginPath();
-                ctx.ellipse(flameX, flameY, currentFlameSize * 0.4, currentFlameSize * 0.9, 0, 0, Math.PI * 2);
-                ctx.fill();
-                
-                ctx.fillStyle = `rgba(255, 255, 0, 0.9)`;
-                ctx.beginPath();
-                ctx.ellipse(flameX, flameY + 2, currentFlameSize * 0.2, currentFlameSize * 0.5, 0, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        });
-    }
-    
-    function createParticle(x, y) {
-        particles.push({ x, y, size: Math.random() * 2 + 1, speedX: Math.random() - 0.5, speedY: -Math.random() * 1.5, life: 60 });
-    }
-
-    function drawParticles() {
-        particles.forEach((p, index) => {
-            p.x += p.speedX; p.y += p.speedY; p.life--;
-            if (p.life <= 0) particles.splice(index, 1);
-            else {
-                ctx.beginPath();
-                ctx.fillStyle = `rgba(107, 114, 128, ${p.life / 60})`;
-                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        });
-    }
-    
-    function createConfetti() {
-        const colors = ['#f472b6', '#ec4899', '#db2777', '#fde047', '#818cf8'];
-        for (let i = 0; i < 200; i++) {
-            confettiParticles.push({
-                x: Math.random() * confettiCanvas.width,
-                y: -Math.random() * confettiCanvas.height,
-                size: Math.random() * 8 + 5,
-                color: colors[Math.floor(Math.random() * colors.length)],
-                speedX: Math.random() * 6 - 3,
-                speedY: Math.random() * 5 + 2,
-                angle: Math.random() * Math.PI * 2,
-                spin: (Math.random() - 0.5) * 0.2
-            });
-        }
-    }
-
-    function drawConfetti() {
-        confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
-        confettiParticles.forEach((p, index) => {
-            p.x += p.speedX;
-            p.y += p.speedY;
-            p.angle += p.spin;
-
-            if (p.y > confettiCanvas.height) {
-                confettiParticles.splice(index, 1);
-            } else {
-                confettiCtx.save();
-                confettiCtx.translate(p.x, p.y);
-                confettiCtx.rotate(p.angle);
-                confettiCtx.fillStyle = p.color;
-                confettiCtx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
-                confettiCtx.restore();
-            }
-        });
-    }
-
-    function draw() {
-        const rect = canvas.getBoundingClientRect();
-        ctx.clearRect(0, 0, rect.width, rect.height);
-        drawCandleSticks();
-        drawFlames();
-        drawParticles();
-    }
-
-    function checkMicLevel() {
-        if (!micReady || !canBlow) {
-            isBlowing = false;
-            return;
-        }
-        const dataArray = new Uint8Array(analyser.frequencyBinCount);
-        analyser.getByteFrequencyData(dataArray);
-        let sum = dataArray.reduce((a, b) => a + b, 0);
-        isBlowing = (sum / dataArray.length) > 45; 
-    }
-    
-    function handleBlow() {
-        if (!canBlow) return;
-        
-        canBlow = false;
-        blowCount++;
-        
-        candles.forEach(candle => {
-            if(candle.health > 0) {
-                candle.health--;
-                 if (candle.health <= 0) {
-                     candle.isLit = false;
-                     const rect = canvas.getBoundingClientRect();
-                     const pX = rect.width * candle.x;
-                     const pY = (rect.height * candle.y) - candle.candleHeight;
-                     for(let i = 0; i < 20; i++) createParticle(pX, pY);
-                 }
-            }
-        });
-
-        if (candles.every(c => !c.isLit)) {
-            instruction.textContent = "🎉 Berhasil! 🎉";
-            createConfetti(); 
-            setTimeout(showFinalMessage, 1500);
-        } else {
-            instruction.textContent = "yah kurang kenceng";
-            setTimeout(() => {
-                const remaining = TOTAL_BLOWS - blowCount;
-                instruction.textContent = `Tiup lagi lah (${remaining}x)`;
-                canBlow = true;
-            }, COOLDOWN_TIME);
-        }
-    }
-
-    let lastIsBlowing = false; 
-    function animate() {
-        requestAnimationFrame(animate);
-        checkMicLevel();
-
-        if (isBlowing && !lastIsBlowing && canBlow) {
-            handleBlow();
-        }
-        lastIsBlowing = isBlowing;
-        
-        draw();
-        
-        if (confettiParticles.length > 0) {
-            drawConfetti();
-        }
-    }
-
-    function showFinalMessage() {
-        if (messagePlayed) return;
-        messagePlayed = true;
-        birthdayScreen.style.transition = 'opacity 0.5s';
-        birthdayScreen.style.opacity = '0';
-        setTimeout(() => {
-            birthdayScreen.classList.add('hidden');
-            finalMessage.classList.remove('hidden');
-        }, 500);
-    }
-
-    startButton.addEventListener('click', async () => {
-        backgroundMusic.play().catch(e => console.log("Gagal memutar musik:", e));
-
-        startScreen.classList.add('hidden');
-        birthdayScreen.classList.remove('hidden');
-        
-        await initAudio();
-
-        requestAnimationFrame(() => {
-            resizeCanvas(); 
-            resizeConfettiCanvas(); 
-            animate();
-            titleElement.classList.add('animated-title');
-            
-            if (micReady) {
-                instruction.textContent = "Ayo, tiup lilinnya ";
-            }
-        });
-    });
-
-    window.addEventListener('resize', () => {
-        resizeCanvas();
-        resizeConfettiCanvas(); 
-    });
-
-</script>
+<script src="script.js"></script>
 </body>
 </html>
