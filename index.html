@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Selamat Ulang Tahun!</title>
+    <title>Selamat Ulang Tahun, Ulan!</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -21,6 +21,7 @@
             align-items: center;
             min-height: 100vh;
             padding: 1rem;
+            overflow: hidden; 
         }
         .font-caveat {
             font-family: 'Caveat', cursive;
@@ -45,18 +46,17 @@
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         }
 
-        /* --- PENGATURAN KUE DAN BINGKAI DIKEMBALIKAN SEPERTI SEBELUMNYA --- */
         .canvas-holder {
             position: relative;
             width: 300px;
             height: 380px;
-            max-width: 100%; /* Dibuat agar tetap responsif jika container lebih kecil */
+            max-width: 100%;
             margin: 0.5rem auto 0;
-            background-size: 100% 100%; /* Memaksa gambar mengisi penuh bingkai */
+            background-size: 100% 100%;
             background-repeat: no-repeat;
             background-position: center;
             background-image: url('./kue-ultah.png'); 
-            border-radius: 0.5rem; /* Bingkai tipis */
+            border-radius: 0.5rem;
             overflow: hidden;
         }
         #birthdayCanvas {
@@ -65,13 +65,11 @@
             left: 0;
             width: 100%;
             height: 100%;
-            cursor: pointer;
+            /* Dihapus: cursor: pointer; */
         }
 
         .animated-title {
             animation: bounceIn 1s ease-out forwards;
-            opacity: 0;
-            transform: scale(0.5);
         }
 
         @keyframes bounceIn {
@@ -80,9 +78,21 @@
             70% { transform: scale(0.9); }
             100% { opacity: 1; transform: scale(1); }
         }
+        
+        #confettiCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 999;
+        }
     </style>
 </head>
 <body>
+
+<canvas id="confettiCanvas"></canvas>
 
 <div id="container"> 
     
@@ -96,21 +106,15 @@
 
     <div id="birthdayScreen" class="hidden">
         
-        <h1 id="title" class="text-2xl sm:text-3xl md:text-4xl text-pink-500 font-caveat mb-4 animated-title">
+        <h1 id="title" class="text-3xl sm:text-4xl md:text-5xl text-pink-500 font-caveat mb-4">
             ciee ultah niyeee
         </h1>
         
         <div class="canvas-holder"> <canvas id="birthdayCanvas"></canvas>
         </div>
 
-        <p id="instruction" class="mt-4 text-gray-600 text-lg font-medium h-6">
+        <p id="instruction" class="mt-4 text-gray-600 text-base font-medium h-12 flex items-center justify-center">
             </p>
-    </div>
-
-    <div id="finalMessage" class="hidden p-8">
-        <p class="text-2xl text-gray-700 reveal-message">
-            Tunggu bentar...
-        </p>
     </div>
     
     <audio id="backgroundMusic" src="./musik-latar.mp3" loop></audio>
@@ -127,6 +131,10 @@
     const finalMessage = document.getElementById('finalMessage');
     const titleElement = document.getElementById('title');
     const backgroundMusic = document.getElementById('backgroundMusic');
+
+    const confettiCanvas = document.getElementById('confettiCanvas');
+    const confettiCtx = confettiCanvas.getContext('2d');
+    let confettiParticles = [];
 
     let audioContext, analyser, microphone;
     let isBlowing = false;
@@ -156,7 +164,8 @@
             micReady = true;
         } catch (err) {
             console.error("Izin mikrofon ditolak:", err);
-            instruction.textContent = "Izin mikrofon ditolak.";
+            instruction.innerHTML = "Nyalain mikrofonnya dong<br>Coba relog halaman terus izinkan okey";
+            micReady = false;
         }
     }
 
@@ -170,6 +179,11 @@
         canvas.style.width = `${rect.width}px`;
         canvas.style.height = `${rect.height}px`;
         ctx.scale(dpr, dpr);
+    }
+    
+    function resizeConfettiCanvas() {
+        confettiCanvas.width = window.innerWidth;
+        confettiCanvas.height = window.innerHeight;
     }
 
     function drawCandleSticks() {
@@ -254,6 +268,42 @@
             }
         });
     }
+    
+    function createConfetti() {
+        const colors = ['#f472b6', '#ec4899', '#db2777', '#fde047', '#818cf8'];
+        for (let i = 0; i < 200; i++) {
+            confettiParticles.push({
+                x: Math.random() * confettiCanvas.width,
+                y: -Math.random() * confettiCanvas.height,
+                size: Math.random() * 8 + 5,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                speedX: Math.random() * 6 - 3,
+                speedY: Math.random() * 5 + 2,
+                angle: Math.random() * Math.PI * 2,
+                spin: (Math.random() - 0.5) * 0.2
+            });
+        }
+    }
+
+    function drawConfetti() {
+        confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+        confettiParticles.forEach((p, index) => {
+            p.x += p.speedX;
+            p.y += p.speedY;
+            p.angle += p.spin;
+
+            if (p.y > confettiCanvas.height) {
+                confettiParticles.splice(index, 1);
+            } else {
+                confettiCtx.save();
+                confettiCtx.translate(p.x, p.y);
+                confettiCtx.rotate(p.angle);
+                confettiCtx.fillStyle = p.color;
+                confettiCtx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+                confettiCtx.restore();
+            }
+        });
+    }
 
     function draw() {
         const rect = canvas.getBoundingClientRect();
@@ -264,7 +314,7 @@
     }
 
     function checkMicLevel() {
-        if (!micReady) {
+        if (!micReady || !canBlow) {
             isBlowing = false;
             return;
         }
@@ -284,22 +334,24 @@
             if(candle.health > 0) {
                 candle.health--;
                  if (candle.health <= 0) {
-                    candle.isLit = false;
-                    const rect = canvas.getBoundingClientRect();
-                    const pX = rect.width * candle.x;
-                    const pY = (rect.height * candle.y) - candle.candleHeight;
-                    for(let i = 0; i < 20; i++) createParticle(pX, pY);
-                }
+                     candle.isLit = false;
+                     const rect = canvas.getBoundingClientRect();
+                     const pX = rect.width * candle.x;
+                     const pY = (rect.height * candle.y) - candle.candleHeight;
+                     for(let i = 0; i < 20; i++) createParticle(pX, pY);
+                 }
             }
         });
 
-        if (blowCount >= TOTAL_BLOWS) {
+        if (candles.every(c => !c.isLit)) {
             instruction.textContent = "🎉 Berhasil! 🎉";
+            createConfetti(); 
             setTimeout(showFinalMessage, 1500);
         } else {
-            instruction.textContent = "Tunggu...";
+            instruction.textContent = "yah kurang kenceng";
             setTimeout(() => {
-                instruction.textContent = "Tiup lagi!";
+                const remaining = TOTAL_BLOWS - blowCount;
+                instruction.textContent = `Tiup lagi lah (${remaining}x)`;
                 canBlow = true;
             }, COOLDOWN_TIME);
         }
@@ -311,11 +363,15 @@
         checkMicLevel();
 
         if (isBlowing && !lastIsBlowing && canBlow) {
-             handleBlow();
+            handleBlow();
         }
         lastIsBlowing = isBlowing;
         
         draw();
+        
+        if (confettiParticles.length > 0) {
+            drawConfetti();
+        }
     }
 
     function showFinalMessage() {
@@ -330,7 +386,7 @@
     }
 
     startButton.addEventListener('click', async () => {
-        backgroundMusic.play();
+        backgroundMusic.play().catch(e => console.log("Gagal memutar musik:", e));
 
         startScreen.classList.add('hidden');
         birthdayScreen.classList.remove('hidden');
@@ -339,17 +395,20 @@
 
         requestAnimationFrame(() => {
             resizeCanvas(); 
+            resizeConfettiCanvas(); 
             animate();
-            instruction.textContent = "Ayo, tiup lilinnya!";
-            setTimeout(() => {
-                titleElement.classList.add('animated-title');
-            }, 50); 
+            titleElement.classList.add('animated-title');
+            
+            if (micReady) {
+                instruction.textContent = "Ayo, tiup lilinnya ";
+            }
         });
     });
 
-    // canvas.addEventListener('click', handleBlow);
-
-    window.addEventListener('resize', resizeCanvas);
+    window.addEventListener('resize', () => {
+        resizeCanvas();
+        resizeConfettiCanvas(); 
+    });
 
 </script>
 </body>
