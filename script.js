@@ -224,7 +224,7 @@ function handleBlow() {
     if (candles.every(c => !c.isLit)) {
         instruction.textContent = "🎉 Berhasil! 🎉";
         createConfetti(); 
-        setTimeout(transitionToGiftBox, 1500); // INI TITIK TRANSISINYA
+        setTimeout(transitionToGiftBox, 1500);
     } else {
         instruction.textContent = "yah kurang kenceng";
         setTimeout(() => {
@@ -252,28 +252,25 @@ function animate() {
     }
 }
 
-// FUNGSI TRANSISI BARU
 function transitionToGiftBox() {
     if (messagePlayed) return;
     messagePlayed = true;
     
     const giftBox = document.getElementById('giftContainer');
     
-    // 1. Fade out container kue
     container.style.opacity = '0';
 
     setTimeout(() => {
-        // 2. Sembunyikan container kue
         container.classList.add('hidden');
 
-        // 3. Ubah style body untuk bagian kado
+        // Hapus background pola dan ubah style body untuk bagian kado
+        document.body.classList.remove('cake-pattern-bg');
         document.body.style.backgroundImage = 'none';
         document.body.style.display = 'flex';
         document.body.style.justifyContent = 'center';
         document.body.style.alignItems = 'center';
         document.body.style.minHeight = '100vh';
         
-        // 4. Tampilkan kotak kado dengan animasi
         if (giftBox) {
             giftBox.classList.remove('hidden');
             giftBox.style.opacity = '0';
@@ -285,11 +282,14 @@ function transitionToGiftBox() {
             }, 50);
         }
 
-    }, 800); // Sesuaikan dengan durasi transisi di CSS
+    }, 800);
 }
 
 
 startButton.addEventListener('click', async () => {
+    // Tambahkan background pola saat kue muncul
+    document.body.classList.add('cake-pattern-bg');
+
     backgroundMusic.play().catch(e => console.log("Gagal memutar musik:", e));
 
     startScreen.classList.add('hidden');
@@ -499,7 +499,6 @@ document.addEventListener('DOMContentLoaded', () => {
         ['mouseup', 'mouseleave'].forEach(evt => galleryContent.addEventListener(evt, () => { isDown = false; }));
     }
 
-    // Fungsi untuk dekorasi kado tetap seperti aslinya
     function seededRandom(seed) { let x = Math.sin(seed++) * 10000; return x - Math.floor(x); }
     function randomPos(exclude, seed) {
         let top, left, size, overlap, tries = 0;
