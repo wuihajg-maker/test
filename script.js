@@ -1,5 +1,3 @@
-// ===== BAGIAN 1: SCRIPT TIUP LILIN =====
-
 const container = document.getElementById('container');
 const startScreen = document.getElementById('startScreen');
 const birthdayScreen = document.getElementById('birthdayScreen');
@@ -257,13 +255,10 @@ function transitionToGiftBox() {
     messagePlayed = true;
     
     const giftBox = document.getElementById('giftContainer');
-    
     container.style.opacity = '0';
 
     setTimeout(() => {
         container.classList.add('hidden');
-
-        // Hapus background pola dan ubah style body untuk bagian kado
         document.body.classList.remove('cake-pattern-bg');
         document.body.style.backgroundImage = 'none';
         document.body.style.display = 'flex';
@@ -281,32 +276,47 @@ function transitionToGiftBox() {
                 giftBox.style.transform = 'scale(1)';
             }, 50);
         }
-
     }, 800);
 }
 
+// *** LOGIKA BARU UNTUK TOMBOL START ***
+startButton.addEventListener('click', () => {
+    // 1. Mulai memudarkan layar awal
+    startScreen.style.opacity = '0';
 
-startButton.addEventListener('click', async () => {
-    // Tambahkan background pola saat kue muncul
-    document.body.classList.add('cake-pattern-bg');
+    // 2. Setelah animasi pudar selesai (500ms), jalankan sisanya
+    setTimeout(() => {
+        // Sembunyikan layar awal sepenuhnya
+        startScreen.classList.add('hidden');
 
-    backgroundMusic.play().catch(e => console.log("Gagal memutar musik:", e));
+        // Tambahkan background pola ke body
+        document.body.classList.add('cake-pattern-bg');
 
-    startScreen.classList.add('hidden');
-    birthdayScreen.classList.remove('hidden');
-    
-    await initAudio();
+        // Tampilkan layar kue tapi masih transparan
+        birthdayScreen.classList.remove('hidden');
+        birthdayScreen.style.opacity = '0';
 
-    requestAnimationFrame(() => {
-        resizeCanvas(); 
-        resizeConfettiCanvas(); 
-        animate();
-        titleElement.classList.add('animated-title');
-        
-        if (micReady) {
-            instruction.textContent = "Ayo, tiup lilinnya ";
-        }
-    });
+        // Minta browser untuk frame berikutnya, LALU jalankan musik dan animasi fade-in
+        requestAnimationFrame(() => {
+            backgroundMusic.play().catch(e => console.log("Gagal memutar musik:", e));
+            birthdayScreen.style.opacity = '1';
+        });
+
+        // Lanjutkan inisialisasi mic dan canvas secara paralel
+        initAudio().then(() => {
+            requestAnimationFrame(() => {
+                resizeCanvas();
+                resizeConfettiCanvas();
+                animate();
+                titleElement.classList.add('animated-title');
+                
+                if (micReady) {
+                    instruction.textContent = "Ayo, tiup lilinnya ";
+                }
+            });
+        });
+
+    }, 500); // Durasi ini harus SAMA dengan transisi di CSS
 });
 
 window.addEventListener('resize', () => {
@@ -316,6 +326,7 @@ window.addEventListener('resize', () => {
 
 
 // ===== BAGIAN 2: SCRIPT KOTAK KADO & GALERI =====
+// (Tidak ada perubahan di bagian ini, semua sama seperti sebelumnya)
 
 document.addEventListener('DOMContentLoaded', () => {
     let slideIndex = 1;
