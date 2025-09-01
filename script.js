@@ -1,3 +1,4 @@
+(function(){    
 const container = document.getElementById('container');
 const startScreen = document.getElementById('startScreen');
 const birthdayScreen = document.getElementById('birthdayScreen');
@@ -279,30 +280,25 @@ function transitionToGiftBox() {
     }, 800);
 }
 
-// *** LOGIKA BARU UNTUK TOMBOL START ***
 startButton.addEventListener('click', () => {
-    // 1. Mulai memudarkan layar awal
+
     startScreen.style.opacity = '0';
 
-    // 2. Setelah animasi pudar selesai (500ms), jalankan sisanya
     setTimeout(() => {
-        // Sembunyikan layar awal sepenuhnya
         startScreen.classList.add('hidden');
 
-        // Tambahkan background pola ke body
         document.body.classList.add('cake-pattern-bg');
 
-        // Tampilkan layar kue tapi masih transparan
+      
         birthdayScreen.classList.remove('hidden');
         birthdayScreen.style.opacity = '0';
 
-        // Minta browser untuk frame berikutnya, LALU jalankan musik dan animasi fade-in
+    
         requestAnimationFrame(() => {
             backgroundMusic.play().catch(e => console.log("Gagal memutar musik:", e));
             birthdayScreen.style.opacity = '1';
         });
 
-        // Lanjutkan inisialisasi mic dan canvas secara paralel
         initAudio().then(() => {
             requestAnimationFrame(() => {
                 resizeCanvas();
@@ -316,7 +312,7 @@ startButton.addEventListener('click', () => {
             });
         });
 
-    }, 500); // Durasi ini harus SAMA dengan transisi di CSS
+    }, 500); 
 });
 
 window.addEventListener('resize', () => {
@@ -324,9 +320,6 @@ window.addEventListener('resize', () => {
     resizeConfettiCanvas(); 
 });
 
-
-// ===== BAGIAN 2: SCRIPT KOTAK KADO & GALERI =====
-// (Tidak ada perubahan di bagian ini, semua sama seperti sebelumnya)
 
 document.addEventListener('DOMContentLoaded', () => {
     let slideIndex = 1;
@@ -556,3 +549,4 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 });
+})();
