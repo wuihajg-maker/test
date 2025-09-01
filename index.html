@@ -8,8 +8,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Caveat:wght@700&family=Playpen+Sans:wght@300;400&display=swap" rel="stylesheet">
+    
+    <!-- Tautan ke file CSS eksternal -->
     <link rel="stylesheet" href="style.css">
 
+    <!-- Preload untuk mempercepat loading aset penting -->
     <link rel="preload" href="stiker/kue-ultah.png" as="image">
     <link rel="preload" href="stiker/pattern-ulang-tahun.png" as="image">
     <link rel="preload" href="stiker/musik-latar.mp3" as="audio">
@@ -58,6 +61,7 @@
         <span class="circle"></span><span class="circle"></span>
         <span class="heart"></span><span class="heart"></span>
     </div>
+    <div class="gift-tag">Pencet dong</div>
 </div>
 
 <div id="galleryContainer" class="gallery-container" aria-hidden="true">
@@ -97,12 +101,28 @@
                 <p class="typing-text" data-text="Semoga hari ini menjadi awal dari tahun yang penuh dengan kebahagiaan, tawa, dan semua impianmu menjadi kenyataan."></p>
                 <p class="typing-text" data-text="Aku bakal dukung kamu apapun itu dan selalu doakan yang terbaik, jaga diri baik² yah  di sana  sehat selalu"></p>
                 <p class="typing-text" data-text="Btw jangan marah yah kalau pake sticker itu 🤣🤣🤣"></p>
-                <button id="repeatGalleryBtn" class="letter-button">liat ulang</button>
+                <div class="flex justify-center items-center space-x-4">
+                    <button id="repeatGalleryBtn" class="letter-button">Liat Ulang</button>
+                    <button id="nextSurpriseBtn" class="letter-button" style="background-color: #818cf8;">Kejutan Terakhir...</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="poem-container" class="hidden">
+            <div class="letter-paper">
+                <h2>Sebuah Puisi Untukmu...</h2>
+                <div id="poem-placeholder" class="typing-text"></div>
+                <div id="poem-loader" class="hidden">
+                     <div class="loader"></div>
+                     <p class="text-sm text-gray-500">Menciptakan puisi khusus untukmu...</p>
+                </div>
+                <button id="generatePoemBtn" class="letter-button">✨ Ciptakan Puisi</button>
+                <button id="finishBtn" class="letter-button hidden" style="background-color: #a5d6a7;">Selesai</button>
             </div>
         </div>
     </div>
 </div>
-
-<script src="script.js"></script>
+<script src="script.js" defer></script>
 </body>
 </html>
+
