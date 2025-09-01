@@ -71,6 +71,8 @@ body {
     height: 100%;
     pointer-events: none;
     z-index: 999;
+    opacity: 1; /* Mulai dengan opacity 1 */
+    transition: opacity 1.5s ease-out; /* Tambahkan transisi fade-out */
 }
 
 .gift-box {
@@ -103,9 +105,8 @@ body {
 
 .speech-bubble {
     position: absolute;
-    top: 20px;
-    left: 100%;
-    margin-left: 10px;
+    top: -20px;
+    left: 105%;
     background-color: #fffde7;
     color: #ec407a;
     padding: 8px 15px;
@@ -117,6 +118,7 @@ body {
     white-space: nowrap;
     z-index: 11;
     animation: speech-bubble-pulse 2s infinite ease-in-out;
+    transform-origin: bottom left;
 }
 .speech-bubble::after {
     content: '';
@@ -219,19 +221,18 @@ body {
 }
 @keyframes rain { from { background-position: 0 0; } to { background-position: 0 500px; } }
 
-#letter-container, #poem-container { 
+#letter-container { 
     position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
     display: none; justify-content: center; align-items: center; z-index: 90; 
     opacity: 0; transform: scale(0.9); transition: opacity 0.5s ease-out, transform 0.5s ease-out; 
 }
-#letter-container.show, #poem-container.show { opacity: 1; transform: scale(1); }
+#letter-container.show { opacity: 1; transform: scale(1); }
 .letter-paper { background: #fffef5; padding: 30px 40px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); max-width: 500px; width: 90%; text-align: center; font-family: 'Playpen Sans', cursive; color: #5d4037; }
 .letter-paper h2 { font-size: 1.6em; font-weight: 400; margin-bottom: 10px; margin-top: 10px; color: #e91e63; }
 .letter-paper p { font-size: 1.1em; line-height: 1.6; font-weight: 300; }
 .letter-button { margin-top: 25px; padding: 10px 20px; border: none; background: #f06292; color: white; font-family: sans-serif; font-size: 1em; border-radius: 20px; cursor: pointer; transition: background-color 0.3s, transform 0.3s; }
 .letter-button:hover { background: #ec407a; transform: scale(1.05); }
 .gallery-content.letter-mode .gallery-slide, .gallery-content.letter-mode .prev, .gallery-content.letter-mode .next { display: none !important; }
-.gallery-content.poem-mode .gallery-slide, .gallery-content.poem-mode .prev, .gallery-content.poem-mode .next { display: none !important; }
 
 .final-slide-indicator { position: absolute; bottom: 20px; right: 20px; width: 50px; height: 50px; background: rgba(240, 98, 146, 0.8); border-radius: 50%; display: flex; justify-content: center; align-items: center; box-shadow: 0 0 15px rgba(240, 98, 146, 0.7); transform: scale(0); opacity: 0; transition: transform 0.4s 0.5s, opacity 0.4s 0.5s; }
 .gallery-slide.active .final-slide-indicator { transform: scale(1); opacity: 1; animation: pulse 2s infinite; }
@@ -241,21 +242,6 @@ body {
 .typing-text { min-height: 1.6em; white-space: pre-wrap; }
 .typing-text.typing::after { content: '|'; color: #e91e63; animation: blink 1s step-end infinite; }
 @keyframes blink { from, to { opacity: 1; } 50% { opacity: 0; } }
-
-#poem-placeholder { min-height: 150px; text-align: left; }
-.loader {
-    width: 48px;
-    height: 48px;
-    border: 5px solid #e91e63;
-    border-bottom-color: transparent;
-    border-radius: 50%;
-    display: inline-block;
-    box-sizing: border-box;
-    animation: rotation 1s linear infinite;
-    margin: 20px auto;
-}
-@keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
 
 @media (max-width: 768px) {
     .prev, .next { width: 44px; height: 44px; line-height: 44px; font-size: 22px; left: 15px; right: 15px; }
