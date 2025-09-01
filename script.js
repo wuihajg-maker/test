@@ -1,5 +1,5 @@
 (function() { 
-    const GEMINI_API_KEY = "AIzaSyBgEUJRwmCOuovYhP-Yfk30t2vJ9GR-e3Q"; 
+    const GEMINI_API_KEY = "AIzaSyBB-iR9z3JGBaSka1Wdv6nJxUg1VuMU740"; 
     const container = document.getElementById('container');
     const startScreen = document.getElementById('startScreen');
     const birthdayScreen = document.getElementById('birthdayScreen');
