@@ -1,5 +1,4 @@
 (function() {
-    const GEMINI_API_KEY = "AIzaSyBB-iR9z3JGBaSka1Wdv6nJxUg1VuMU740"; 
     const container = document.getElementById('container');
     const startScreen = document.getElementById('startScreen');
     const birthdayScreen = document.getElementById('birthdayScreen');
@@ -233,7 +232,12 @@
 
         if (candles.every(c => !c.isLit)) {
             if(instruction) instruction.textContent = "🎉 Berhasil! 🎉";
+            if(confettiCanvas) confettiCanvas.style.opacity = '1';
             createConfetti(); 
+            // Konfeti akan menghilang setelah 3 detik
+            setTimeout(() => {
+                if(confettiCanvas) confettiCanvas.style.opacity = '0';
+            }, 3000);
             setTimeout(transitionToGiftBox, 1500);
         } else {
             if(instruction) instruction.textContent = "yah kurang kenceng";
@@ -306,13 +310,6 @@
         const letterContainer = document.getElementById('letter-container');
         const repeatGalleryBtn = document.getElementById('repeatGalleryBtn');
         
-        const nextSurpriseBtn = document.getElementById('nextSurpriseBtn');
-        const poemContainer = document.getElementById('poem-container');
-        const generatePoemBtn = document.getElementById('generatePoemBtn');
-        const poemPlaceholder = document.getElementById('poem-placeholder');
-        const poemLoader = document.getElementById('poem-loader');
-        const finishBtn = document.getElementById('finishBtn');
-
         const slides = document.getElementsByClassName("gallery-slide");
         if (!slides) return;
         const TOTAL_SLIDES = slides.length;
@@ -358,18 +355,14 @@
         }
         
         if (repeatGalleryBtn) {
-            repeatGalleryBtn.addEventListener('click', () => {
-                hidePoem();
-                hideLetter();
-            });
+            repeatGalleryBtn.addEventListener('click', hideLetter);
         }
 
         function closeGalleryFunc() {
             if (galleryContainer) {
                 galleryContainer.classList.remove('show');
                 galleryContainer.setAttribute('aria-hidden', 'true');
-                hideLetter(false); 
-                hidePoem();
+                hideLetter(false);
                 setTimeout(() => { 
                     if(galleryContainer) galleryContainer.style.display = 'none'; 
                 }, 400);
@@ -401,7 +394,7 @@
             }
         }
 
-        function hideLetter(stayInPlace = false) {
+        function hideLetter() {
             if(typingInterval) clearInterval(typingInterval);
             if (galleryContent && letterContainer) {
                 galleryContent.classList.remove('letter-mode');
@@ -410,92 +403,14 @@
                     if(letterContainer) letterContainer.style.display = 'none';
                     letterContainer.querySelectorAll('.typing-text').forEach(p => p.innerHTML = '');
                 }, 500);
-                if (!stayInPlace) {
-                    showSlides(slideIndex = 1);
-                }
+                showSlides(slideIndex = 1);
             }
         }
-        
-        function showPoem() {
-            if (galleryContent && poemContainer) {
-                hideLetter(true); 
-                galleryContent.classList.add('poem-mode');
-                poemContainer.style.display = 'flex';
-                setTimeout(() => {
-                    poemContainer.classList.add('show');
-                }, 10);
-            }
-        }
-        
-        function hidePoem() {
-             if (galleryContent && poemContainer) {
-                galleryContent.classList.remove('poem-mode');
-                poemContainer.classList.remove('show');
-                setTimeout(() => {
-                    if(poemContainer) poemContainer.style.display = 'none';
-                }, 500);
-             }
-        }
 
-        if (nextSurpriseBtn) {
-            nextSurpriseBtn.addEventListener('click', showPoem);
-        }
-
-        if (generatePoemBtn) {
-            generatePoemBtn.addEventListener('click', generatePoem);
-        }
-        if (finishBtn) {
-            finishBtn.addEventListener('click', closeGalleryFunc);
-        }
-
-        async function generatePoem() {
-            if (!GEMINI_API_KEY) {
-                if(poemPlaceholder) poemPlaceholder.innerText = "Maaf, fitur ini sedang tidak aktif karena API Key belum diatur.";
-                return;
-            }
-
-            if(generatePoemBtn) generatePoemBtn.classList.add('hidden');
-            if(poemLoader) poemLoader.classList.remove('hidden');
-            
-            const prompt = "Tuliskan sebuah puisi motivasi yang singkat (3-4 bait) dan kuat untuk seseorang bernama Ulan di hari ulang tahunnya. Puisi ini BUKAN tentang cinta romantis, melainkan tentang semangat juang, menghadapi ketakutan, dan tidak pernah menyerah pada impian. Gunakan bahasa yang indah, puitis, dan membangkitkan semangat dalam Bahasa Indonesia.";
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${GEMINI_API_KEY}`;
-            
-            try {
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: prompt }] }]
-                    })
-                });
-
-                if (!response.ok) {
-                    throw new Error(`API request failed with status ${response.status}`);
-                }
-
-                const result = await response.json();
-                const poemText = result.candidates[0].content.parts[0].text;
-                
-                if(poemLoader) poemLoader.classList.add('hidden');
-                if(poemPlaceholder) {
-                    poemPlaceholder.setAttribute('data-text', poemText);
-                    typewriter(poemPlaceholder, () => {
-                       if(finishBtn) finishBtn.classList.remove('hidden');
-                    });
-                }
-
-            } catch (error) {
-                console.error("Error generating poem:", error);
-                if(poemLoader) poemLoader.classList.add('hidden');
-                if(poemPlaceholder) poemPlaceholder.innerText = "Maaf, terjadi kesalahan saat membuat puisi. Coba lagi nanti ya.";
-                if(generatePoemBtn) generatePoemBtn.classList.remove('hidden');
-            }
-        }
-        
         function typewriter(element, callback) {
             if (!element) return;
             const textContent = element.getAttribute('data-text') || '';
-            const chars = Array.from(textContent);
+            const chars = Array.from(textContent); // Handles emoji correctly
             let index = 0;
             element.innerHTML = '';
             element.classList.add('typing');
