@@ -101,26 +101,38 @@ body {
     z-index: 3;
 }
 
-.gift-tag {
+.speech-bubble {
     position: absolute;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
+    top: 20px;
+    left: 100%;
+    margin-left: 10px;
     background-color: #fffde7;
     color: #ec407a;
-    padding: 5px 15px;
-    border-radius: 15px;
+    padding: 8px 15px;
+    border-radius: 20px;
     font-family: 'Caveat', cursive;
-    font-size: 1.2rem;
+    font-size: 1.3rem;
     font-weight: 700;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    z-index: 4;
-    animation: tag-pulse 2s infinite ease-in-out;
+    white-space: nowrap;
+    z-index: 11;
+    animation: speech-bubble-pulse 2s infinite ease-in-out;
 }
-@keyframes tag-pulse {
-    0%, 100% { transform: translateX(-50%) scale(1); }
-    50% { transform: translateX(-50%) scale(1.05); }
+.speech-bubble::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: 100%;
+    margin-top: -8px;
+    border-width: 8px;
+    border-style: solid;
+    border-color: transparent #fffde7 transparent transparent;
 }
+@keyframes speech-bubble-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
 
 .gift-box.clicked { animation: popEffect 0.4s ease-out; }
 @keyframes popEffect {
