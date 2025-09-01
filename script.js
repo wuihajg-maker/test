@@ -1,4 +1,4 @@
-(function() { 
+(function() {
     const GEMINI_API_KEY = "AIzaSyBB-iR9z3JGBaSka1Wdv6nJxUg1VuMU740"; 
     const container = document.getElementById('container');
     const startScreen = document.getElementById('startScreen');
@@ -494,7 +494,8 @@
         
         function typewriter(element, callback) {
             if (!element) return;
-            const chars = Array.from(element.getAttribute('data-text') || '');
+            const textContent = element.getAttribute('data-text') || '';
+            const chars = Array.from(textContent);
             let index = 0;
             element.innerHTML = '';
             element.classList.add('typing');
@@ -602,6 +603,7 @@
         }
     }
 
+    // --- Inisialisasi Utama ---
     if (startButton) {
         startButton.addEventListener('click', () => {
             if(startScreen) startScreen.style.opacity = '0';
